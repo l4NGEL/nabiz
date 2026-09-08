@@ -1,0 +1,48 @@
+# python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+/build/
+/dist/
+
+# ortam
+.venv/
+venv/
+.env
+
+# test / lint önbellek
+.pytest_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+
+# veri ve ağır çıktılar (repo kökünde; DVC ile izlenir)
+# NOT: yalnız kök '/data/' — 'src/nabiz/data/' paketi hariç
+/data/
+!/data/**/*.dvc
+!/data/**/.gitignore
+/modeller/
+/deneyler/
+/mlruns/
+*.onnx
+*.engine
+*.plan
+*.pt
+*.pth
+*.tflite
+*.wav
+*.mat
+*.h5
+
+# IDE / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# sonuclar/ VERSİYONLANIR (split özeti, parmak izi, saha raporu)
+# türetilen manifest hariç:
+/sonuclar/manifest.parquet

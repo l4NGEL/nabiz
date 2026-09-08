@@ -1,0 +1,8 @@
+{
+  "kaynak": "sentetik-disk",
+  "parmak_izleri": {
+    "birim_ici": "92235b625cf5c06114897ba80c006986fac173b9f8012b23d6d0fbdaf873ab47",
+    "birim_disi": "f56ffa87f7ee91a82368813eb2748050ebca25fa8e432d8163d41d139654fe0b",
+    "rejim_holdout": "61251f06b9a2613434759754c56261a35160cd074c23eaeb473ad8536530267e"
+  }
+}
