@@ -12,8 +12,8 @@ saha testi → raporlama.
 
 | Faz | Kapsam | Durum |
 |-----|--------|-------|
-| 0 | Kapsam + veri şartnamesi + split doğrulama + DSP önyüz + CI | **devam ediyor** |
-| 1 | DSP önyüz (mel / order spektrumu / telemetri öznitelikleri) | planlandı |
+| 0 | Kapsam + veri şartnamesi + split doğrulama + DSP önyüz + CI | **büyük ölçüde tamam** (33 test; kalan: DVC remote + gerçek MIMII) |
+| 1 | DSP önyüz (mel / order spektrumu / telemetri öznitelikleri) | sırada |
 | 2 | Model aileleri (AE / CNN / CRNN / Transformer / füzyon) + değerlendirme | planlandı |
 | 3 | ONNX / INT8 / TensorRT + budama/distilasyon + uç benchmark | planlandı |
 | 4 | C++ çıkarım yolu + CUDA mel çekirdeği | planlandı |
