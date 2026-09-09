@@ -33,3 +33,8 @@ jobs:
           python 01_split_dogrula.py
           diff /tmp/pi1.json sonuclar/split-parmak-izleri.json \
             || (echo "::error::split parmak izi iki koşu arasında değişti (determinizm ihlali)" && exit 1)
+
+      - name: Öznitelik + model boru hattı (torch'suz → yalnız baseline)
+        run: |
+          python 02_oznitelik_cikar.py
+          python 03_model_egit.py --strateji birim_disi --hizli

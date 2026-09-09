@@ -66,15 +66,17 @@ Doğrulama yöntemi kodları: **T** test (otomatik), **A** analiz/ölçüm, **D*
 |------------|---------------|----------------|-------|
 | FR-01 | `dsp/hizalama.py` — `hizala` (kayma < 1 ms assert), `telemetri_hizala`, eksik kanal graceful | `test_hizalama.py::*` (12 test) | **karşılandı** (gerçek eş-zamanlı kayıt Faz 6 saha) |
 | FR-02 | `dsp/features.py` (log-mel, zarf), `dsp/titresim.py` (order/envelope), `dsp/telemetri.py`; `02_oznitelik_cikar.py` | `test_dsp.py`, `test_titresim.py`, `test_telemetri.py`, `test_dsp_property.py`; C++ parite `test_parite.py` (Faz 4) | **kısmi** — Python tarafı tam, C++ paritesi Faz 4 |
-| FR-03 | `models/autoencoder.py` (Faz 2) | `test_model_kalite.py::test_ae_auc` | planlandı |
+| FR-03 | `models/autoencoder.py` + `models/baseline.py` + `eval/metrics.py`; `03_model_egit.py` | `test_autoencoder.py`, `test_baseline.py`, `test_metrics.py` (36 test) | **kısmi** — kod+harness hazır, AUC hedefi (≥0.90) MIMII ile doğrulanacak (sentetikte ayrım yok) |
 | FR-04 | `models/cnn.py` (Faz 2) | `test_model_kalite.py::test_siniflandirma_f1` | planlandı |
 | FR-05 | `models/rul.py` (Faz 2) | `test_model_kalite.py::test_rul_mae` | planlandı |
 | FR-06 | `edge/onnx_disa.py` (Faz 3) | `test_runtime_parite.py` | planlandı |
 | FR-07 | `protocol/mesaj.proto`, `protocol/yayinci.py` (Faz 5) | `test_protokol.py::test_round_trip` | planlandı |
 | FR-08 | `serving/toplayici.py` (Faz 5) | `test_toplayici.py` | planlandı |
 | FR-09 | `serving/dashboard/` (Faz 6) | uçtan uca senaryo | planlandı |
-| PR-01..05 | — | `bench/` ölçüm betikleri | planlandı |
-| RB-01 | `data/splits.py::rejim_holdout_split` | `test_splits.py::test_rejim_holdout_hedef_domain_test` | **kısmi** — split tarafı var |
+| PR-01 | `eval/metrics.py::yanlis_alarm_saat`; `03_model_egit.py` raporu | `test_metrics.py::test_yanlis_alarm_saat` | **kısmi** — ölçüm var, hedef (≤1/24s) MIMII ile |
+| PR-03 | `eval/metrics.py::pauc` (DCASE `max_fpr`) + baseline karşılaştırması | `test_metrics.py::test_pauc_*` | **kısmi** — pAUC hesabı + baseline var, hedef MIMII ile |
+| PR-02, PR-04, PR-05 | — | `bench/` ölçüm betikleri (Faz 3) | planlandı |
+| RB-01 | `data/splits.py::rejim_holdout_split` + `03_model_egit.py` domain-shift Δ tablosu | `test_splits.py::test_rejim_holdout_*` | **kısmi** — split + rapor var, MIMII DUE Faz 2 sonu |
 | RB-02 | `eval/gorulmemiş_ariza.py` (Faz 2) | `test_model_kalite.py::test_gorulmemis_ariza` | planlandı |
 | RB-03 | `edge/tampon.py` (Faz 5) | `test_protokol.py::test_ag_kesintisi` | planlandı |
 | RB-04 | `edge/nicemleme.py` (Faz 3) | `test_nicemleme_parite.py` | planlandı |

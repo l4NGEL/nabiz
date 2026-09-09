@@ -14,7 +14,7 @@ saha testi → raporlama.
 |-----|--------|-------|
 | 0 | Kapsam + veri şartnamesi + split doğrulama + CI | **tamam** (kalan: DVC remote + gerçek MIMII) |
 | 1 | DSP önyüz — hizalama, order/envelope, telemetri, öznitelik hattı | **tamam** (68 test) |
-| 2 | Model aileleri (AE / CNN / CRNN / Transformer / füzyon) + değerlendirme | **sırada** |
+| 2 | Değerlendirme (AUC/pAUC/ECE) + baseline'lar + dense AE | **başladı** (105 test); CNN/CRNN/Transformer + gerçek MIMII sırada |
 | 3 | ONNX / INT8 / TensorRT + budama/distilasyon + uç benchmark | planlandı |
 | 4 | C++ çıkarım yolu + CUDA mel çekirdeği | planlandı |
 | 5 | Protobuf + MQTT/DDS + merkezi toplayıcı | planlandı |
@@ -28,7 +28,11 @@ Ayrıntı: [docs/yol-haritasi.md](docs/yol-haritasi.md)
 python -m venv .venv
 .venv/Scripts/activate        # Windows;  Linux/mac: source .venv/bin/activate
 pip install -e ".[dev]"
+pip install -e ".[dl]"        # Faz 2+ : torch (autoencoder). CUDA için:
+                              #   pip install torch --index-url https://download.pytorch.org/whl/cu121
 ```
+
+`torch` yoksa `03_model_egit.py` yalnız baseline'ları çalıştırır (AE atlanır); `pytest` AE testlerini `skip` eder.
 
 ## Hızlı başlangıç (gerçek veri olmadan)
 
@@ -36,7 +40,8 @@ pip install -e ".[dev]"
 python 00_veri_indir.py --sentetik      # data/ham/sentetik/ altına küçük WAV seti (2 rejim)
 python 01_split_dogrula.py               # manifest + 3 split + sızıntı kontrolü + parmak izi
 python 02_oznitelik_cikar.py             # WAV → 2 sn pencere → 168 öznitelik → parquet
-pytest -q                                # 68 birim testi
+python 03_model_egit.py --hizli          # baseline + dense AE → sonuclar/faz2-modeller.md
+pytest -q                                # 105 birim testi
 ```
 
 ## Gerçek veri

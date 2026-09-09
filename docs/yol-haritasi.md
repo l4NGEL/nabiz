@@ -47,18 +47,24 @@ Yeniden kullanım kaynakları:
 Kalan (gerçek veriyle): titreşim yolunu MIMII yerine CWRU/Paderborn ile besle;
 gerçek telemetri kaynağı (şu an sentetik vekil).
 
-## Faz 2 — Modeller + değerlendirme · 1.5-2 hafta
+## Faz 2 — Modeller + değerlendirme · 1.5-2 hafta · **başladı**
 
-- [ ] `models/autoencoder.py` (dense + conv) — DCASE baseline eşdeğeri
-- [ ] `models/cnn.py`, `models/crnn.py`, `models/transformer.py` (küçük AST/PaSST)
+- [x] `eval/metrics.py` — AUC, pAUC (DCASE `max_fpr`), eşik seçimi (F1/FPR hedefli),
+  ECE (Guo), C-MAPSS asimetrik skor, `yanlis_alarm_saat`, `bootstrap_ci`, `anomali_raporu` (kırılımlı)
+- [x] `models/baseline.py` — RMS eşiği, IsolationForest, Mahalanobis + `Olcekleyici`
+- [x] `models/autoencoder.py` — dense AE (torch, GPU-farkında, erken durma, deterministik)
+- [x] `data/oznitelik.py` — parquet → model-hazır diziler (split + grup/ablasyon seçimi)
+- [x] `03_model_egit.py` — baseline + AE, birim_disi + rejim_holdout, `sonuclar/faz2-modeller.md`
+  (AUC/pAUC/F1/FPR + makine tipi kırılımı + domain-shift Δ)
+- [x] Bootstrap CI (`anomali_raporu` içinde)
+- [ ] `models/cnn.py`, `models/crnn.py`, `models/transformer.py` (log-mel tensörü üzerinde; şu an öznitelik-vektörü)
 - [ ] `models/fusion.py` — spektrogram-CNN ⊕ telemetri-MLP
 - [ ] `models/rul.py` — C-MAPSS
-- [ ] `eval/metrics.py` — AUC, pAUC, ECE, C-MAPSS skoru
-- [ ] Kalibrasyon (sonar `10_vliz_calibrate` uyarlaması), OOD (sonar `15_vliz_ood`)
-- [ ] Baseline'lar: IsolationForest, RMS eşiği, DCASE dense-AE
-- [ ] Ablasyon + 3-5 seed + bootstrap CI
+- [ ] Kalibrasyon (sonar `10_vliz_calibrate`), OOD (sonar `15_vliz_ood`)
+- [ ] Ablasyon (a_/z_/t_ grupları) + 3-5 seed
 - [ ] MLflow deney takibi
 - [ ] Domain-shift (MIMII DUE), görülmemiş arıza tipi, çapraz-veri — test katmanı 3
+- [ ] **Gerçek MIMII ile yeniden çalıştır** — sentetik veride tüm modeller AUC≈1 (ayrım yok)
 
 ## Faz 3 — Uç uyarlama + optimizasyon · 1 hafta
 
