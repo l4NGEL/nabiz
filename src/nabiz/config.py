@@ -34,6 +34,26 @@ N_MEL = 64
 FMIN = 50.0
 FMAX = 8_000.0            # <= Nyquist (ORNEKLEME_HIZI / 2)
 
+# --- Titreşim / order analizi ---
+TITRESIM_HIZI = 25_600           # Hz — şartname (min 3x ilgi bandı)
+MAKS_ORDER = 10.0                # order spektrumu üst sınırı (shaft rate katı)
+ORDER_COZUNURLUK = 0.01          # order grid adımı
+ZARF_BANDI = (2_000.0, 6_000.0)  # demodülasyon bandı öntanımı (ivmeölçer rezonansı)
+ORNEK_PER_DEVIR = 64             # hesaplanan order takibi çözünürlüğü
+
+# SKF 6205-2RS (CWRU tahrik ucu rulmanı) geometrisi — order analizi öntanımı
+RULMAN_6205 = {
+    "n_bilya": 9,
+    "d_bilya_mm": 7.94,
+    "d_pitch_mm": 39.04,
+    "temas_acisi_derece": 0.0,
+}
+
+# --- Telemetri ---
+TELEMETRI_HIZI = 10.0            # Hz
+TELEMETRI_KANALLAR = ("rpm", "yuk", "sicaklik", "gerilim")
+RPM_NOMINAL = 1_800.0
+
 # --- Split öntanımları ---
 VARSAYILAN_SEED = 20_260_908
 TEST_ORANI = 0.20

@@ -12,9 +12,9 @@ saha testi → raporlama.
 
 | Faz | Kapsam | Durum |
 |-----|--------|-------|
-| 0 | Kapsam + veri şartnamesi + split doğrulama + DSP önyüz + CI | **büyük ölçüde tamam** (33 test; kalan: DVC remote + gerçek MIMII) |
-| 1 | DSP önyüz (mel / order spektrumu / telemetri öznitelikleri) | sırada |
-| 2 | Model aileleri (AE / CNN / CRNN / Transformer / füzyon) + değerlendirme | planlandı |
+| 0 | Kapsam + veri şartnamesi + split doğrulama + CI | **tamam** (kalan: DVC remote + gerçek MIMII) |
+| 1 | DSP önyüz — hizalama, order/envelope, telemetri, öznitelik hattı | **tamam** (68 test) |
+| 2 | Model aileleri (AE / CNN / CRNN / Transformer / füzyon) + değerlendirme | **sırada** |
 | 3 | ONNX / INT8 / TensorRT + budama/distilasyon + uç benchmark | planlandı |
 | 4 | C++ çıkarım yolu + CUDA mel çekirdeği | planlandı |
 | 5 | Protobuf + MQTT/DDS + merkezi toplayıcı | planlandı |
@@ -33,9 +33,10 @@ pip install -e ".[dev]"
 ## Hızlı başlangıç (gerçek veri olmadan)
 
 ```bash
-python 00_veri_indir.py --sentetik      # data/ham/sentetik/ altına küçük WAV seti
-python 01_split_dogrula.py               # manifest + 3 split + sızıntı kontrolü
-pytest -q                                # birim testleri
+python 00_veri_indir.py --sentetik      # data/ham/sentetik/ altına küçük WAV seti (2 rejim)
+python 01_split_dogrula.py               # manifest + 3 split + sızıntı kontrolü + parmak izi
+python 02_oznitelik_cikar.py             # WAV → 2 sn pencere → 168 öznitelik → parquet
+pytest -q                                # 68 birim testi
 ```
 
 ## Gerçek veri

@@ -137,8 +137,8 @@ test senaryosu → geç/kal kriteri → sonuç.
 
 | Katman | Faz | Durum |
 |--------|-----|-------|
-| 0 Veri/split | 0 | **aktif** — `test_splits.py` |
-| 1 DSP birim | 1 | **kısmi** — `test_dsp.py` var, parite Faz 4 |
+| 0 Veri/split | 0 | **aktif** — `test_splits.py` (16 test) |
+| 1 DSP birim | 1 | **aktif** — `test_dsp.py` + `test_hizalama.py` + `test_titresim.py` + `test_telemetri.py` + `test_dsp_property.py` (52 test); C++ golden-vector paritesi Faz 4 |
 | 2 Model kalite | 2 | planlandı |
 | 3 Domain shift | 2 | planlandı |
 | 4 Uç/donanım | 3-4 | planlandı |

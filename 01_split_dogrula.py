@@ -1,11 +1,11 @@
-"""Manifest oluştur → 3 split uygula → sızıntı kontrolü → özet + parmak izi yaz.
+"""Manifest oluştur -> 3 split uygula -> sızıntı kontrolü -> özet + parmak izi yaz.
 
 Gerçek MIMII varsa onu, yoksa data/ham/sentetik/ dizinini kullanır.
 
 Çıktılar (sonuclar/):
-  manifest.parquet              tam manifest + üç bölme sütunu
-  split-ozeti.md                bölme × etiket kırılımı
-  split-parmak-izleri.json      her stratejinin SHA-256'sı (CI bunu doğrular)
+  manifest.parquet              tam manifest + bölme sütunları
+  split-ozeti.md                bölme x etiket kırılımı
+  split-parmak-izleri.json      her stratejinin SHA-256'sı
 """
 from __future__ import annotations
 
@@ -15,46 +15,23 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent / "src"))
 
-import pandas as pd  # noqa: E402
-
 from nabiz import config  # noqa: E402
 from nabiz.cli import utf8_cikti  # noqa: E402
-from nabiz.data import manifest as M  # noqa: E402
+from nabiz.data import pipeline as P  # noqa: E402
 from nabiz.data import splits as S  # noqa: E402
 
 utf8_cikti()
 
 
-def manifest_yukle() -> tuple[pd.DataFrame, str]:
-    mimii_kok = config.HAM_VERI / "mimii"
-    if mimii_kok.exists() and any(mimii_kok.rglob("*.wav")):
-        return M.mimii_manifest(mimii_kok), "mimii"
-    sentetik_kok = config.HAM_VERI / "sentetik"
-    if sentetik_kok.exists() and any(sentetik_kok.rglob("*.wav")):
-        return M.dizin_manifest(sentetik_kok, veri_seti="sentetik"), "sentetik-disk"
-    # son çare: dosyasız sentetik manifest
-    return M.sentetik_manifest(seed=config.VARSAYILAN_SEED), "sentetik-bellek"
-
-
 def main() -> int:
     config.dizinleri_hazirla()
-    man, kaynak = manifest_yukle()
-    print(f"manifest: {len(man)} örnek, kaynak={kaynak}, "
-          f"{man['makine_birimi'].nunique()} birim, {man['makine_tipi'].nunique()} tip")
+    man, kaynak = P.manifest_yukle()
+    print(
+        f"manifest: {len(man)} örnek, kaynak={kaynak}, "
+        f"{man['makine_birimi'].nunique()} birim, {man['makine_tipi'].nunique()} tip"
+    )
 
-    rejimler = sorted(man["rejim"].unique())
-    holdout = [rejimler[-1]] if len(rejimler) > 1 else None
-
-    stratejiler = {
-        "birim_ici": S.birim_ici_split(man, seed=config.VARSAYILAN_SEED),
-        "birim_disi": S.birim_disi_split(man, seed=config.VARSAYILAN_SEED),
-    }
-    if holdout:
-        stratejiler["rejim_holdout"] = S.rejim_holdout_split(
-            man, holdout_rejimler=holdout, seed=config.VARSAYILAN_SEED
-        )
-
-    # birleşik manifest: her strateji kendi bölme sütununda
+    stratejiler = P.split_stratejileri(man)
     birlesik = man.copy()
     parmak_izleri: dict[str, str] = {}
     ozet_bloklari: list[str] = []
@@ -74,7 +51,7 @@ def main() -> int:
         encoding="utf-8",
     )
     (config.SONUC_DIZINI / "split-ozeti.md").write_text(
-        f"# Split özeti\n\nKaynak: `{kaynak}` · {len(man)} örnek · "
+        f"# Split özeti\n\nKaynak: `{kaynak}` - {len(man)} örnek - "
         f"{man['makine_birimi'].nunique()} birim\n\n" + "\n".join(ozet_bloklari),
         encoding="utf-8",
     )

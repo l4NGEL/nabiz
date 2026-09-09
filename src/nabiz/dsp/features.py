@@ -14,17 +14,7 @@ from scipy.fft import rfft, rfftfreq
 from scipy.signal import get_window, hilbert
 
 from nabiz import config
-
-
-def _sonlu_1b(x, ad: str = "sinyal") -> np.ndarray:
-    x = np.asarray(x, dtype=np.float64)
-    if x.ndim != 1:
-        raise ValueError(f"{ad} 1B olmalı, shape={x.shape}")
-    if x.size == 0:
-        raise ValueError(f"{ad} boş")
-    if not np.all(np.isfinite(x)):
-        raise ValueError(f"{ad} sonlu değil (NaN/inf)")
-    return x
+from nabiz.dsp.dogrulama import sonlu_1b as _sonlu_1b
 
 
 def cerceve(x, cerceve_uzunluk: int, hop: int) -> np.ndarray:
@@ -136,3 +126,45 @@ def oznitelik_vektoru(x, ornekleme_hizi: int | None = None) -> np.ndarray:
     var = np.mean(x**2)
     kurt = float(np.mean(x**4) / (var**2 + 1e-12)) if var > 0 else 0.0
     return np.concatenate([lm.mean(axis=1), lm.std(axis=1), [rms, kurt]])
+
+
+def zarf_oznitelik(
+    x, ornekleme_hizi: int | None = None, maks_hz: float = 1000.0
+) -> dict[str, float]:
+    """Zarf spektrumundan darbe/modülasyon öznitelikleri (rulman imzası).
+
+    Bant geçirmez (geniş bant Hilbert zarfı) — hem akustik hem titreşim için.
+    """
+    sr = ornekleme_hizi or config.ORNEKLEME_HIZI
+    x = _sonlu_1b(x)
+    frekans, genlik = zarf_spektrumu(x, sr)
+    m = (frekans > 0) & (frekans <= maks_hz)
+    f, g = frekans[m], genlik[m]
+    if g.size == 0 or g.sum() == 0:
+        return {f"z_{k}": 0.0 for k in ("tepe", "tepe_frk", "merkez", "duzluk", "e_dusuk", "e_orta")}
+    tepe_i = int(np.argmax(g))
+    merkez = float((f * g).sum() / g.sum())
+    gmean = float(np.exp(np.mean(np.log(g + 1e-12))))
+    duzluk = gmean / (float(g.mean()) + 1e-12)          # spektral düzlük (tonalite tersi)
+    e_dusuk = float(g[f <= 100].sum() / g.sum())
+    e_orta = float(g[(f > 100) & (f <= 400)].sum() / g.sum())
+    return {
+        "z_tepe": float(g[tepe_i]),
+        "z_tepe_frk": float(f[tepe_i]),
+        "z_merkez": merkez,
+        "z_duzluk": float(duzluk),
+        "z_e_dusuk": e_dusuk,
+        "z_e_orta": e_orta,
+    }
+
+
+def pencere_oznitelikleri(x, ornekleme_hizi: int | None = None) -> dict[str, float]:
+    """Bir pencere için isimli öznitelik sözlüğü: akustik (a_*) + zarf (z_*)."""
+    v = oznitelik_vektoru(x, ornekleme_hizi)
+    n_mel = config.N_MEL
+    oz = {f"a_mel_ort_{i:02d}": float(v[i]) for i in range(n_mel)}
+    oz.update({f"a_mel_std_{i:02d}": float(v[n_mel + i]) for i in range(n_mel)})
+    oz["a_rms"] = float(v[-2])
+    oz["a_kurtosis"] = float(v[-1])
+    oz.update(zarf_oznitelik(x, ornekleme_hizi))
+    return oz

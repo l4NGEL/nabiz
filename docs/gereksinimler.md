@@ -64,8 +64,8 @@ Doğrulama yöntemi kodları: **T** test (otomatik), **A** analiz/ölçüm, **D*
 
 | Gereksinim | Tasarım / kod | Test senaryosu | Durum |
 |------------|---------------|----------------|-------|
-| FR-01 | `dsp/hizalama.py` (Faz 1) | `test_hizalama.py::*` | planlandı |
-| FR-02 | `dsp/features.py` | `test_dsp.py::*` (Python), `test_parite.py` (C++) | **kısmi** — Python tarafı var |
+| FR-01 | `dsp/hizalama.py` — `hizala` (kayma < 1 ms assert), `telemetri_hizala`, eksik kanal graceful | `test_hizalama.py::*` (12 test) | **karşılandı** (gerçek eş-zamanlı kayıt Faz 6 saha) |
+| FR-02 | `dsp/features.py` (log-mel, zarf), `dsp/titresim.py` (order/envelope), `dsp/telemetri.py`; `02_oznitelik_cikar.py` | `test_dsp.py`, `test_titresim.py`, `test_telemetri.py`, `test_dsp_property.py`; C++ parite `test_parite.py` (Faz 4) | **kısmi** — Python tarafı tam, C++ paritesi Faz 4 |
 | FR-03 | `models/autoencoder.py` (Faz 2) | `test_model_kalite.py::test_ae_auc` | planlandı |
 | FR-04 | `models/cnn.py` (Faz 2) | `test_model_kalite.py::test_siniflandirma_f1` | planlandı |
 | FR-05 | `models/rul.py` (Faz 2) | `test_model_kalite.py::test_rul_mae` | planlandı |
@@ -78,7 +78,7 @@ Doğrulama yöntemi kodları: **T** test (otomatik), **A** analiz/ölçüm, **D*
 | RB-02 | `eval/gorulmemiş_ariza.py` (Faz 2) | `test_model_kalite.py::test_gorulmemis_ariza` | planlandı |
 | RB-03 | `edge/tampon.py` (Faz 5) | `test_protokol.py::test_ag_kesintisi` | planlandı |
 | RB-04 | `edge/nicemleme.py` (Faz 3) | `test_nicemleme_parite.py` | planlandı |
-| RB-05 | `dsp/features.py` (giriş doğrulama) | `test_dsp.py::test_nan_girdi_hata` vb. | **karşılandı** |
+| RB-05 | `dsp/dogrulama.py` (`sonlu_1b`, `pozitif`) — tüm DSP modülleri | `test_dsp.py::test_nan_girdi_hata`, `test_hizalama.py::test_kanal_nan_reddedilir`, `test_titresim.py::test_bant_gecir_gecersiz_bant` vb. | **karşılandı** |
 | QR-01 | `.dvc/`, `data/splits.py::manifest_parmak_izi` | `test_splits.py::test_manifest_parmak_izi_kararli` | **karşılandı** |
 | QR-02 | `.github/workflows/ci.yml` | — | **kısmi** — Faz 0 kapıları aktif |
 | QR-03 | `pyproject.toml` cov ayarı | CI | **kısmi** |

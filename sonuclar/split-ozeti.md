@@ -1,6 +1,6 @@
 # Split özeti
 
-Kaynak: `sentetik-disk` · 768 örnek · 8 birim
+Kaynak: `sentetik-disk` - 768 örnek - 8 birim
 
 ### birim_ici
 

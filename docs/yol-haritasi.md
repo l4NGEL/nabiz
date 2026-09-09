@@ -27,13 +27,25 @@ Yeniden kullanım kaynakları:
 - [ ] MIMII fan/pump indir → `dvc add data/ham/mimii` → gerçek veri ile ilk koşu
 - [ ] DVC remote (S3/GDrive/yerel) yapılandır
 
-## Faz 1 — DSP önyüz · 3-4 gün
+## Faz 1 — DSP önyüz · 3-4 gün · **TAMAM**
 
-- [ ] Çok-kanal hizalama (`dsp/hizalama.py`) — FR-01
-- [ ] Titreşim için order/envelope analizi parametreli
-- [ ] Telemetri öznitelik çıkarımı (RPM/yük/sıcaklık istatistikleri, trend)
-- [ ] Öznitelik hattını `02_oznitelik_cikar.py` ile diske yaz (parquet)
-- [ ] hypothesis property testleri
+- [x] Çok-kanal hizalama (`dsp/hizalama.py`) — `Kanal`, `yeniden_ornekle`, `hizala`
+  (ortak hız + ortak zaman aralığı, eksik kanal graceful), `capraz_korelasyon_kaymasi`,
+  `telemetri_hizala` — FR-01
+- [x] Titreşim analizi (`dsp/titresim.py`) — `rulman_ariza_frekanslari` (FTF/BPFO/BPFI/BSF),
+  `bant_gecir`, `bantli_zarf_spektrumu`, `order_spektrumu` (sabit RPM),
+  `hesaplanan_order_takibi` (COT, değişken hız), `spektral_kurtosis_bant`
+- [x] Telemetri öznitelik çıkarımı (`dsp/telemetri.py`) — kanal başına 8 istatistik,
+  `rejim_etiketi`, `sentetik_telemetri` (Faz 1 vekil)
+- [x] `dsp/features.py` genişletildi — `zarf_oznitelik`, `pencere_oznitelikleri`
+- [x] `02_oznitelik_cikar.py` — WAV → 2 sn pencere → 168 öznitelik/pencere
+  (a_ 130 akustik, z_ 6 zarf, t_ 32 telemetri) → `data/islenmis/oznitelikler.parquet`
+- [x] `src/nabiz/data/pipeline.py` — manifest+split üretimi `01`/`02` arası paylaşımlı
+- [x] hypothesis property testleri (`tests/test_dsp_property.py`)
+- [x] 68 test geçiyor, ruff temiz
+
+Kalan (gerçek veriyle): titreşim yolunu MIMII yerine CWRU/Paderborn ile besle;
+gerçek telemetri kaynağı (şu an sentetik vekil).
 
 ## Faz 2 — Modeller + değerlendirme · 1.5-2 hafta
 
