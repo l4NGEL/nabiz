@@ -14,7 +14,7 @@ saha testi → raporlama.
 |-----|--------|-------|
 | 0 | Kapsam + veri şartnamesi + split doğrulama + CI | **tamam** (kalan: DVC remote + gerçek MIMII) |
 | 1 | DSP önyüz — hizalama, order/envelope, telemetri, öznitelik hattı | **tamam** (68 test) |
-| 2 | Değerlendirme (AUC/pAUC/ECE) + baseline'lar + dense AE | **başladı** (105 test); CNN/CRNN/Transformer + gerçek MIMII sırada |
+| 2 | Değerlendirme (AUC/pAUC/ECE) + 6 model ailesi (baseline / dense AE / ConvAE / CRNN / Transformer) | **büyük ölçüde tamam** (125 test); füzyon + RUL + gerçek MIMII sırada |
 | 3 | ONNX / INT8 / TensorRT + budama/distilasyon + uç benchmark | planlandı |
 | 4 | C++ çıkarım yolu + CUDA mel çekirdeği | planlandı |
 | 5 | Protobuf + MQTT/DDS + merkezi toplayıcı | planlandı |
@@ -39,9 +39,9 @@ pip install -e ".[dl]"        # Faz 2+ : torch (autoencoder). CUDA için:
 ```bash
 python 00_veri_indir.py --sentetik      # data/ham/sentetik/ altına küçük WAV seti (2 rejim)
 python 01_split_dogrula.py               # manifest + 3 split + sızıntı kontrolü + parmak izi
-python 02_oznitelik_cikar.py             # WAV → 2 sn pencere → 168 öznitelik → parquet
-python 03_model_egit.py --hizli          # baseline + dense AE → sonuclar/faz2-modeller.md
-pytest -q                                # 105 birim testi
+python 02_oznitelik_cikar.py --mel       # WAV → 2 sn pencere → 168 öznitelik + log-mel tensör
+python 03_model_egit.py --hizli          # 6 model ailesi → sonuclar/faz2-modeller.md
+pytest -q                                # 125 birim testi
 ```
 
 ## Gerçek veri

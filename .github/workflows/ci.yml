@@ -36,5 +36,5 @@ jobs:
 
       - name: Öznitelik + model boru hattı (torch'suz → yalnız baseline)
         run: |
-          python 02_oznitelik_cikar.py
+          python 02_oznitelik_cikar.py --mel
           python 03_model_egit.py --strateji birim_disi --hizli

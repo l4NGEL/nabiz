@@ -115,6 +115,35 @@ def zarf_spektrumu(
     return frekans, genlik
 
 
+def mel_tensor(
+    x,
+    ornekleme_hizi: int | None = None,
+    hedef_cerceve: int | None = None,
+) -> np.ndarray:
+    """(n_mel, hedef_cerceve) sabit-boyut log-mel — CNN/CRNN/Transformer girdisi.
+
+    `hedef_cerceve` verilirse zaman ekseni kırpılır/sıfırla doldurulur (yığınlama
+    için tüm pencereler aynı şekilde). Verilmezse doğal çerçeve sayısı.
+    """
+    lm = log_mel_spektrogram(x, ornekleme_hizi)
+    if hedef_cerceve is None:
+        return lm
+    n = lm.shape[1]
+    if n == hedef_cerceve:
+        return lm
+    if n > hedef_cerceve:
+        bas = (n - hedef_cerceve) // 2
+        return lm[:, bas : bas + hedef_cerceve]
+    return np.pad(lm, ((0, 0), (0, hedef_cerceve - n)), mode="edge")
+
+
+def varsayilan_cerceve_sayisi(ornekleme_hizi: int | None = None) -> int:
+    """PENCERE_SN'lik pencere için log-mel çerçeve sayısı."""
+    sr = ornekleme_hizi or config.ORNEKLEME_HIZI
+    n_ornek = int(config.PENCERE_SN * sr)
+    return 1 + (n_ornek - config.N_FFT) // config.HOP
+
+
 def oznitelik_vektoru(x, ornekleme_hizi: int | None = None) -> np.ndarray:
     """Bir pencere için özet öznitelik — baseline modeller ve hızlı deneme.
 

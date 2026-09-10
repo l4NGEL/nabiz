@@ -66,7 +66,7 @@ Doğrulama yöntemi kodları: **T** test (otomatik), **A** analiz/ölçüm, **D*
 |------------|---------------|----------------|-------|
 | FR-01 | `dsp/hizalama.py` — `hizala` (kayma < 1 ms assert), `telemetri_hizala`, eksik kanal graceful | `test_hizalama.py::*` (12 test) | **karşılandı** (gerçek eş-zamanlı kayıt Faz 6 saha) |
 | FR-02 | `dsp/features.py` (log-mel, zarf), `dsp/titresim.py` (order/envelope), `dsp/telemetri.py`; `02_oznitelik_cikar.py` | `test_dsp.py`, `test_titresim.py`, `test_telemetri.py`, `test_dsp_property.py`; C++ parite `test_parite.py` (Faz 4) | **kısmi** — Python tarafı tam, C++ paritesi Faz 4 |
-| FR-03 | `models/autoencoder.py` + `models/baseline.py` + `eval/metrics.py`; `03_model_egit.py` | `test_autoencoder.py`, `test_baseline.py`, `test_metrics.py` (36 test) | **kısmi** — kod+harness hazır, AUC hedefi (≥0.90) MIMII ile doğrulanacak (sentetikte ayrım yok) |
+| FR-03 | `models/`: baseline (RMS/IsoForest/Mahalanobis) + AE (dense) + CNN (ConvAE) + RNN (CRNNAE) + Transformer (SpekTransformerAE); `eval/metrics.py`; `03_model_egit.py` | `test_autoencoder.py`, `test_mel_modelleri.py`, `test_baseline.py`, `test_metrics.py` (~55 test) | **kısmi** — 6 model ailesi + harness hazır (ilan "CNN/RNN/LSTM/AE/Transformers/hibrid" karşılığı), AUC hedefi (≥0.90) MIMII ile |
 | FR-04 | `models/cnn.py` (Faz 2) | `test_model_kalite.py::test_siniflandirma_f1` | planlandı |
 | FR-05 | `models/rul.py` (Faz 2) | `test_model_kalite.py::test_rul_mae` | planlandı |
 | FR-06 | `edge/onnx_disa.py` (Faz 3) | `test_runtime_parite.py` | planlandı |

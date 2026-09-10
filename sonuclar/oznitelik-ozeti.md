@@ -2,7 +2,8 @@
 
 - kaynak: `sentetik-disk`
 - satır (pencere): **768**  ·  öznitelik: **168** (a_ 130, z_ 6, t_ 32)
-- süre: 5.6 sn
+- mel tensör: (768, 64, 61)
+- süre: 8.5 sn
 
 ### bolme__birim_ici
 

@@ -1,14 +1,17 @@
-"""Faz 2 — baseline'lar + dense autoencoder eğit, değerlendir, karşılaştır.
+"""Faz 2 — gözetimsiz anomali modelleri: eğit, değerlendir, karşılaştır.
 
-  a_ (akustik) + z_ (zarf) + t_ (telemetri) öznitelikleri üzerinde
-  gözetimsiz anomali tespiti (yalnız normal ile eğitim).
+Öznitelik-vektörü yolu (a_ + z_ + t_):  RMS eşiği, IsolationForest, Mahalanobis, DenseAE
+Mel-tensör yolu (data/islenmis/mel.npz varsa):  ConvAE, CRNNAE, SpekTransformerAE
 
-Çıktı:  sonuclar/faz2-modeller.md   (strateji x model AUC/pAUC/F1/FPR + kırılım)
+Hepsi yalnız normal örneklerle eğitilir; anomali skoru = yeniden yapılandırma /
+mesafe. Eşik validasyondan (F1) seçilir.
+
+Çıktı:  sonuclar/faz2-modeller.md
 
 Kullanım:
-  python 03_model_egit.py                       # birim_disi + rejim_holdout
+  python 03_model_egit.py                 # birim_disi + rejim_holdout, mevcut tüm modeller
   python 03_model_egit.py --strateji birim_ici
-  python 03_model_egit.py --hizli                # AE epok azalt (duman testi)
+  python 03_model_egit.py --hizli          # AE epok az (duman testi)
 """
 from __future__ import annotations
 
@@ -19,6 +22,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent / "src"))
 
+import numpy as np  # noqa: E402
 import pandas as pd  # noqa: E402
 
 from nabiz import config  # noqa: E402
@@ -31,74 +35,129 @@ from nabiz.models.temel import Olcekleyici  # noqa: E402
 utf8_cikti()
 
 try:
+    from nabiz.data import mel as MEL
     from nabiz.models.autoencoder import DenseAE
+    from nabiz.models.cnn import ConvAE
+    from nabiz.models.crnn import CRNNAE
+    from nabiz.models.transformer import SpekTransformerAE
 
     TORCH_VAR = True
 except ImportError:
-    DenseAE = None
     TORCH_VAR = False
 
+SEED = config.VARSAYILAN_SEED
 
-def modelleri_kur(oznitelik_adlari: list[str], hizli: bool) -> list:
-    modeller = [
-        B.RMSEsigi(oznitelik_adlari),
-        B.IzolasyonOrmani(seed=config.VARSAYILAN_SEED),
-        B.Mahalanobis(),
+
+def _rapor_satiri(ad: str, rapor: dict, sn: float) -> dict:
+    return {
+        "model": ad,
+        "AUC": rapor["auc"],
+        "AUC_CI": f"[{rapor['auc_alt']:.3f}, {rapor['auc_ust']:.3f}]",
+        "pAUC": rapor["pauc"],
+        "F1": rapor["esikte"]["f1"],
+        "precision": rapor["esikte"]["precision"],
+        "recall": rapor["esikte"]["recall"],
+        "FPR": rapor["esikte"]["fpr"],
+        "yanlış_alarm/sa": rapor.get("yanlis_alarm_saat", float("nan")),
+        "sn": sn,
+        "_kirilim": rapor["kirilim"]["makine_tipi"],
+    }
+
+
+def _degerlendir(ad, y_te, s_te, y_va, s_va, kirilim, saat, sn) -> dict | None:
+    try:
+        rapor = MT.anomali_raporu(
+            y_te, s_te, y_va, s_va, kirilim={"makine_tipi": kirilim}, toplam_saat=saat
+        )
+    except ValueError as e:
+        print(f"    {ad:20s} atlandı: {e}")
+        return None
+    print(f"    {ad:20s} AUC {rapor['auc']:.3f}  pAUC {rapor['pauc']:.3f}  F1 {rapor['esikte']['f1']:.3f}")
+    return _rapor_satiri(ad, rapor, sn)
+
+
+def oznitelik_kismi(strateji: str, hizli: bool) -> list[dict]:
+    veri = OZ.yukle(strateji)
+    print(f"  öznitelik  {veri.ozet()}")
+    olc = Olcekleyici().egit(veri.X_train_normal)
+    Xtr = olc.uygula(veri.X_train_normal)
+    Xva, Xte = olc.uygula(veri.X_val), olc.uygula(veri.X_test)
+    Xva_n = Xva[veri.y_val == 0] if (veri.y_val == 0).any() else None
+    saat = float((veri.y_test == 0).sum()) * config.PENCERE_SN / 3600.0
+    kir = veri.kirilim("makine_tipi")
+
+    isler = [
+        (B.RMSEsigi(veri.oznitelik_adlari), "ham"),
+        (B.IzolasyonOrmani(seed=SEED), "olcek"),
+        (B.Mahalanobis(), "olcek"),
     ]
     if TORCH_VAR:
-        modeller.append(DenseAE(epok=8 if hizli else 120, seed=config.VARSAYILAN_SEED))
-    return modeller
+        isler.append((DenseAE(epok=8 if hizli else 120, seed=SEED), "ae"))
+
+    satirlar = []
+    for model, tur in isler:
+        t0 = time.perf_counter()
+        try:
+            if tur == "ham":
+                model.egit(veri.X_train_normal)
+                s_va, s_te = model.anomali_skoru(veri.X_val), model.anomali_skoru(veri.X_test)
+            elif tur == "ae":
+                model.egit(Xtr, X_val=Xva_n)
+                s_va, s_te = model.anomali_skoru(Xva), model.anomali_skoru(Xte)
+            else:
+                model.egit(Xtr)
+                s_va, s_te = model.anomali_skoru(Xva), model.anomali_skoru(Xte)
+        except ValueError as e:
+            print(f"    {model.ad:20s} atlandı: {e}")
+            continue
+        s = _degerlendir(model.ad, veri.y_test, s_te, veri.y_val, s_va, kir, saat, time.perf_counter() - t0)
+        if s:
+            satirlar.append(s)
+    return satirlar
+
+
+def _mel_olcekle(X: np.ndarray, mu: np.ndarray, sd: np.ndarray) -> np.ndarray:
+    return (X - mu[None, :, None]) / sd[None, :, None]
+
+
+def mel_kismi(strateji: str, hizli: bool) -> list[dict]:
+    if not TORCH_VAR or not (config.ISLENMIS_VERI / "mel.npz").exists():
+        return []
+    veri = MEL.yukle(strateji)
+    print(f"  mel        {veri.ozet()}")
+    Xn = veri.X_train_normal
+    mu = Xn.mean(axis=(0, 2))
+    sd = Xn.std(axis=(0, 2))
+    sd[sd < 1e-6] = 1.0
+    Xtr = _mel_olcekle(Xn, mu, sd)
+    Xva, Xte = _mel_olcekle(veri.X_val, mu, sd), _mel_olcekle(veri.X_test, mu, sd)
+    Xva_n = Xva[veri.y_val == 0] if (veri.y_val == 0).any() else None
+    saat = float((veri.y_test == 0).sum()) * config.PENCERE_SN / 3600.0
+    kir = veri.kirilim("makine_tipi")
+
+    e = 6 if hizli else 100
+    modeller = [
+        ConvAE(epok=e, seed=SEED),
+        CRNNAE(epok=e, seed=SEED),
+        SpekTransformerAE(epok=e, seed=SEED),
+    ]
+    satirlar = []
+    for model in modeller:
+        t0 = time.perf_counter()
+        try:
+            model.egit(Xtr, X_val=Xva_n)
+            s_va, s_te = model.anomali_skoru(Xva), model.anomali_skoru(Xte)
+        except ValueError as ex:
+            print(f"    {model.ad:20s} atlandı: {ex}")
+            continue
+        s = _degerlendir(model.ad, veri.y_test, s_te, veri.y_val, s_va, kir, saat, time.perf_counter() - t0)
+        if s:
+            satirlar.append(s)
+    return satirlar
 
 
 def strateji_calistir(strateji: str, hizli: bool) -> pd.DataFrame:
-    veri = OZ.yukle(strateji)
-    print(f"  {veri.ozet()}")
-
-    olc = Olcekleyici().egit(veri.X_train_normal)
-    Xtr_n = olc.uygula(veri.X_train_normal)
-    Xva, Xte = olc.uygula(veri.X_val), olc.uygula(veri.X_test)
-    saat = float((veri.y_test == 0).sum()) * config.PENCERE_SN / 3600.0
-
-    satirlar = []
-    for model in modelleri_kur(veri.oznitelik_adlari, hizli):
-        t0 = time.perf_counter()
-        try:
-            # RMS ham ölçekte çalışır (a_rms özniteliği); diğerleri ölçekli
-            if isinstance(model, B.RMSEsigi):
-                model.egit(veri.X_train_normal)
-                s_va, s_te = model.anomali_skoru(veri.X_val), model.anomali_skoru(veri.X_test)
-            elif TORCH_VAR and isinstance(model, DenseAE):
-                model.egit(Xtr_n, X_val=Xva[veri.y_val == 0] if (veri.y_val == 0).any() else None)
-                s_va, s_te = model.anomali_skoru(Xva), model.anomali_skoru(Xte)
-            else:
-                model.egit(Xtr_n)
-                s_va, s_te = model.anomali_skoru(Xva), model.anomali_skoru(Xte)
-
-            rapor = MT.anomali_raporu(
-                veri.y_test, s_te, veri.y_val, s_va,
-                kirilim={"makine_tipi": veri.kirilim("makine_tipi")},
-                toplam_saat=saat,
-            )
-        except ValueError as e:
-            print(f"    {model.ad:18s} atlandı: {e}")
-            continue
-        satirlar.append(
-            {
-                "model": model.ad,
-                "AUC": rapor["auc"],
-                "AUC_CI": f"[{rapor['auc_alt']:.3f}, {rapor['auc_ust']:.3f}]",
-                "pAUC": rapor["pauc"],
-                "F1": rapor["esikte"]["f1"],
-                "precision": rapor["esikte"]["precision"],
-                "recall": rapor["esikte"]["recall"],
-                "FPR": rapor["esikte"]["fpr"],
-                "yanlış_alarm/sa": rapor.get("yanlis_alarm_saat", float("nan")),
-                "sn": time.perf_counter() - t0,
-                "_kirilim": rapor["kirilim"]["makine_tipi"],
-            }
-        )
-        print(f"    {model.ad:18s} AUC {rapor['auc']:.3f}  pAUC {rapor['pauc']:.3f}  F1 {rapor['esikte']['f1']:.3f}")
-
+    satirlar = oznitelik_kismi(strateji, hizli) + mel_kismi(strateji, hizli)
     if not satirlar:
         raise ValueError("hiçbir model değerlendirilemedi (tek sınıflı test/val?)")
     df = pd.DataFrame(satirlar)
@@ -110,11 +169,14 @@ def rapor_yaz(tablolar: list[pd.DataFrame], hizli: bool) -> Path:
     config.SONUC_DIZINI.mkdir(parents=True, exist_ok=True)
     yol = config.SONUC_DIZINI / "faz2-modeller.md"
     goster = ["strateji", "model", "AUC", "AUC_CI", "pAUC", "F1", "precision", "recall", "FPR", "yanlış_alarm/sa", "sn"]
+    mel_var = (config.ISLENMIS_VERI / "mel.npz").exists()
     parcalar = [
         "# Faz 2 — model karşılaştırması\n",
-        "- öznitelik: a_ + z_ + t_  ·  gözetimsiz (yalnız normal eğitim)",
-        f"- torch/AE: {'var' if TORCH_VAR else 'YOK — yalnız baseline'}"
-        f"{'  (hızlı mod: AE epok=8)' if hizli and TORCH_VAR else ''}",
+        "- öznitelik yolu: a_ + z_ + t_  ·  mel yolu: log-mel tensör "
+        f"({'aktif' if mel_var and TORCH_VAR else 'yok'})",
+        f"- torch: {'var' if TORCH_VAR else 'YOK — yalnız baseline'}"
+        f"{'  (hızlı mod)' if hizli and TORCH_VAR else ''}",
+        "- gözetimsiz (yalnız normal eğitim); eşik validasyondan F1 ile",
         "- NOT: sentetik veri — sayılar boru hattı doğrulaması içindir, "
         "portföy değeri için MIMII gerekir\n",
     ]
@@ -125,8 +187,8 @@ def rapor_yaz(tablolar: list[pd.DataFrame], hizli: bool) -> Path:
     for _, satir in tum.iterrows():
         k = satir["_kirilim"]
         if k:
-            kirilim_str = ", ".join(f"{g}: {v['auc']:.3f} (n={v['n']})" for g, v in k.items())
-            parcalar.append(f"- **{satir['strateji']} / {satir['model']}** — {kirilim_str}")
+            s = ", ".join(f"{g}: {v['auc']:.3f} (n={v['n']})" for g, v in k.items())
+            parcalar.append(f"- **{satir['strateji']} / {satir['model']}** — {s}")
 
     if {"birim_disi", "rejim_holdout"} <= set(tum["strateji"]):
         parcalar.append("\n## Domain-shift (RB-01)\n")
@@ -134,8 +196,10 @@ def rapor_yaz(tablolar: list[pd.DataFrame], hizli: bool) -> Path:
             bd = tum[(tum.strateji == "birim_disi") & (tum.model == model)]["AUC"]
             rh = tum[(tum.strateji == "rejim_holdout") & (tum.model == model)]["AUC"]
             if len(bd) and len(rh):
-                fark = float(bd.iloc[0] - rh.iloc[0])
-                parcalar.append(f"- {model}: birim_disi {bd.iloc[0]:.3f} → rejim_holdout {rh.iloc[0]:.3f}  (Δ {fark:+.3f})")
+                parcalar.append(
+                    f"- {model}: birim_disi {bd.iloc[0]:.3f} → rejim_holdout {rh.iloc[0]:.3f} "
+                    f" (Δ {float(bd.iloc[0] - rh.iloc[0]):+.3f})"
+                )
 
     yol.write_text("\n".join(parcalar), encoding="utf-8")
     return yol
@@ -153,13 +217,13 @@ def main() -> int:
         return 1
 
     stratejiler = [a.strateji] if a.strateji else ["birim_disi", "rejim_holdout"]
-    print(f"torch/AE: {'var' if TORCH_VAR else 'YOK'}")
+    print(f"torch: {'var' if TORCH_VAR else 'YOK'}  ·  mel.npz: {(config.ISLENMIS_VERI / 'mel.npz').exists()}")
     tablolar = []
     for s in stratejiler:
         print(f"\n[{s}]")
         try:
             tablolar.append(strateji_calistir(s, a.hizli))
-        except ValueError as e:
+        except (ValueError, FileNotFoundError) as e:
             print(f"  atlandı: {e}")
 
     if not tablolar:

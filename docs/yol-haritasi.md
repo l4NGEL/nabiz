@@ -57,14 +57,19 @@ gerçek telemetri kaynağı (şu an sentetik vekil).
 - [x] `03_model_egit.py` — baseline + AE, birim_disi + rejim_holdout, `sonuclar/faz2-modeller.md`
   (AUC/pAUC/F1/FPR + makine tipi kırılımı + domain-shift Δ)
 - [x] Bootstrap CI (`anomali_raporu` içinde)
-- [ ] `models/cnn.py`, `models/crnn.py`, `models/transformer.py` (log-mel tensörü üzerinde; şu an öznitelik-vektörü)
-- [ ] `models/fusion.py` — spektrogram-CNN ⊕ telemetri-MLP
+- [x] `models/_egitim.py` — ortak AE eğitim çekirdeği (`TemelAE`, erken durma, deterministik)
+- [x] `models/cnn.py` (ConvAE — 2B evrişimli), `models/crnn.py` (CRNNAE — GRU seq2seq),
+  `models/transformer.py` (SpekTransformerAE — maskeli çerçeve yeniden yapılandırma) — log-mel tensörü
+- [x] `dsp/features.py::mel_tensor` (sabit-boyut) + `02_oznitelik_cikar.py --mel` (`data/islenmis/mel.npz`)
+  + `data/mel.py` yükleyici
+- [x] `03_model_egit.py` — öznitelik yolu + mel yolu, 6 model ailesi (CNN/RNN/AE/Transformer)
+- [ ] `models/fusion.py` — spektrogram-CNN ⊕ telemetri-MLP (hibrid)
 - [ ] `models/rul.py` — C-MAPSS
 - [ ] Kalibrasyon (sonar `10_vliz_calibrate`), OOD (sonar `15_vliz_ood`)
 - [ ] Ablasyon (a_/z_/t_ grupları) + 3-5 seed
 - [ ] MLflow deney takibi
 - [ ] Domain-shift (MIMII DUE), görülmemiş arıza tipi, çapraz-veri — test katmanı 3
-- [ ] **Gerçek MIMII ile yeniden çalıştır** — sentetik veride tüm modeller AUC≈1 (ayrım yok)
+- [ ] **Gerçek MIMII ile yeniden çalıştır** — sentetikte modeller doygun (AUC≈1)
 
 ## Faz 3 — Uç uyarlama + optimizasyon · 1 hafta
 

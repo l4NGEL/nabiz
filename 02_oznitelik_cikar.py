@@ -8,10 +8,12 @@
 
 Çıktı:  data/islenmis/oznitelikler.parquet   (pencere başına 1 satır)
         sonuclar/oznitelik-ozeti.md
+        --mel ile: data/islenmis/mel.npz     (X: (N, n_mel, T) float32, parquet ile aynı satır sırası)
 
 Kullanım:
   python 02_oznitelik_cikar.py               # tüm manifest
   python 02_oznitelik_cikar.py --limit 40    # ilk 40 dosya (hızlı deneme)
+  python 02_oznitelik_cikar.py --mel         # log-mel tensör önbelleği de yaz (CNN/CRNN/Transformer)
 """
 from __future__ import annotations
 
@@ -61,10 +63,14 @@ def _pencere_telemetri(tel: dict, bas_sn: float, bitis_sn: float) -> dict:
     return {k: v[m] for k, v in tel.items() if k != "_zaman_sn"}
 
 
-def satirlari_uret(man: pd.DataFrame, limit: int | None) -> list[dict]:
+def satirlari_uret(
+    man: pd.DataFrame, limit: int | None, mel: bool
+) -> tuple[list[dict], list[np.ndarray] | None]:
     yollar = M.mutlak_yollar(man)
     bolme_sut = [c for c in man.columns if c.startswith("bolme__")]
     satirlar: list[dict] = []
+    mel_listesi: list[np.ndarray] | None = [] if mel else None
+    hedef_t = F.varsayilan_cerceve_sayisi()
     hatali = 0
 
     alt = man.head(limit) if limit else man
@@ -91,16 +97,20 @@ def satirlari_uret(man: pd.DataFrame, limit: int | None) -> list[dict]:
             oz.update({k: satir[k] for k in bolme_sut})
             oz["pencere_idx"] = p_idx
             satirlar.append(oz)
+            if mel_listesi is not None:
+                mel_listesi.append(
+                    F.mel_tensor(pencere, sr, hedef_cerceve=hedef_t).astype(np.float32)
+                )
 
         if (i + 1) % 200 == 0:
             print(f"  {i + 1}/{len(alt)} dosya işlendi")
 
     if hatali:
         print(f"  toplam {hatali} dosya okunamadı")
-    return satirlar
+    return satirlar, mel_listesi
 
 
-def ozet_yaz(df: pd.DataFrame, kaynak: str, saniye: float) -> None:
+def ozet_yaz(df: pd.DataFrame, kaynak: str, saniye: float, mel_sekil: tuple | None) -> None:
     oz_sut = [c for c in df.columns if c[:2] in ("a_", "z_", "t_")]
     bolme_sut = [c for c in df.columns if c.startswith("bolme__")]
     bloklar = [
@@ -110,6 +120,7 @@ def ozet_yaz(df: pd.DataFrame, kaynak: str, saniye: float) -> None:
         f"(a_ {sum(c.startswith('a_') for c in oz_sut)}, "
         f"z_ {sum(c.startswith('z_') for c in oz_sut)}, "
         f"t_ {sum(c.startswith('t_') for c in oz_sut)})",
+        f"- mel tensör: {mel_sekil if mel_sekil else 'yazılmadı (--mel ile)'}",
         f"- süre: {saniye:.1f} sn\n",
     ]
     for b in bolme_sut:
@@ -121,6 +132,7 @@ def ozet_yaz(df: pd.DataFrame, kaynak: str, saniye: float) -> None:
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--limit", type=int, default=None, help="ilk N dosya (hızlı deneme)")
+    ap.add_argument("--mel", action="store_true", help="log-mel tensör önbelleği de yaz")
     a = ap.parse_args()
 
     config.dizinleri_hazirla()
@@ -129,11 +141,11 @@ def main() -> int:
         print("HATA: gerçek dosya yok. Önce:  python 00_veri_indir.py --sentetik")
         return 1
 
-    man, parmak = P.splitli_manifest(man)
+    man, _parmak = P.splitli_manifest(man)
     print(f"manifest: {len(man)} dosya, kaynak={kaynak}")
 
     t0 = time.perf_counter()
-    satirlar = satirlari_uret(man, a.limit)
+    satirlar, mel_listesi = satirlari_uret(man, a.limit, a.mel)
     saniye = time.perf_counter() - t0
     if not satirlar:
         print("HATA: hiç öznitelik üretilemedi")
@@ -143,11 +155,18 @@ def main() -> int:
     oz_sut = sorted(c for c in df.columns if c[:2] in ("a_", "z_", "t_"))
     df = df[META_SUTUNLAR + [c for c in df.columns if c.startswith("bolme__")] + ["pencere_idx"] + oz_sut]
 
+    config.ISLENMIS_VERI.mkdir(parents=True, exist_ok=True)
     cikti = config.ISLENMIS_VERI / "oznitelikler.parquet"
-    cikti.parent.mkdir(parents=True, exist_ok=True)
     df.to_parquet(cikti, index=False)
-    ozet_yaz(df, kaynak, saniye)
 
+    mel_sekil = None
+    if mel_listesi is not None:
+        X_mel = np.stack(mel_listesi)  # (N, n_mel, T)
+        mel_sekil = X_mel.shape
+        np.savez_compressed(config.ISLENMIS_VERI / "mel.npz", X=X_mel)
+        print(f"mel tensör: {X_mel.shape} -> {config.ISLENMIS_VERI / 'mel.npz'}")
+
+    ozet_yaz(df, kaynak, saniye, mel_sekil)
     print(f"\n{len(df)} pencere x {len(oz_sut)} öznitelik  ({saniye:.1f} sn)")
     print(f"yazildi -> {cikti}")
     print(f"yazildi -> {config.SONUC_DIZINI / 'oznitelik-ozeti.md'}")

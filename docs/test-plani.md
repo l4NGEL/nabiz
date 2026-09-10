@@ -139,7 +139,7 @@ test senaryosu → geç/kal kriteri → sonuç.
 |--------|-----|-------|
 | 0 Veri/split | 0 | **aktif** — `test_splits.py` (16 test) |
 | 1 DSP birim | 1 | **aktif** — `test_dsp.py` + `test_hizalama.py` + `test_titresim.py` + `test_telemetri.py` + `test_dsp_property.py` (52 test); C++ golden-vector paritesi Faz 4 |
-| 2 Model kalite | 2 | **aktif** — `test_metrics.py` + `test_baseline.py` + `test_autoencoder.py` + `test_oznitelik.py` (37 test); CNN/CRNN/Transformer + gerçek MIMII AUC hedefi sırada |
+| 2 Model kalite | 2 | **aktif** — `test_metrics.py` + `test_baseline.py` + `test_autoencoder.py` + `test_mel_modelleri.py` + `test_oznitelik.py` + `test_mel_loader.py` (~58 test); füzyon/RUL/kalibrasyon + gerçek MIMII AUC hedefi sırada |
 | 3 Domain shift | 2 | planlandı |
 | 4 Uç/donanım | 3-4 | planlandı |
 | 5 Protokol | 5 | planlandı |
