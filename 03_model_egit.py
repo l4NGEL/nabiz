@@ -2,6 +2,7 @@
 
 Öznitelik-vektörü yolu (a_ + z_ + t_):  RMS eşiği, IsolationForest, Mahalanobis, DenseAE
 Mel-tensör yolu (data/islenmis/mel.npz varsa):  ConvAE, CRNNAE, SpekTransformerAE
+Füzyon (hibrid, aynı koşulda):  FusionAE — spektrogram-CNN ⊕ telemetri-MLP
 
 Hepsi yalnız normal örneklerle eğitilir; anomali skoru = yeniden yapılandırma /
 mesafe. Eşik validasyondan (F1) seçilir.
@@ -39,6 +40,7 @@ try:
     from nabiz.models.autoencoder import DenseAE
     from nabiz.models.cnn import ConvAE
     from nabiz.models.crnn import CRNNAE
+    from nabiz.models.fusion import FusionAE
     from nabiz.models.transformer import SpekTransformerAE
 
     TORCH_VAR = True
@@ -156,8 +158,53 @@ def mel_kismi(strateji: str, hizli: bool) -> list[dict]:
     return satirlar
 
 
+def fuzyon_kismi(strateji: str, hizli: bool) -> list[dict]:
+    if not TORCH_VAR or not (config.ISLENMIS_VERI / "mel.npz").exists():
+        return []
+    mel_veri = MEL.yukle(strateji)
+    tel_veri = OZ.yukle(strateji, gruplar=("t",))
+    hizali = (
+        np.array_equal(mel_veri.y_train, tel_veri.y_train)
+        and np.array_equal(mel_veri.y_val, tel_veri.y_val)
+        and np.array_equal(mel_veri.y_test, tel_veri.y_test)
+    )
+    if not hizali:
+        print("    fusion_ae            atlandı: mel ve öznitelik satırları hizasız "
+              "(02_oznitelik_cikar.py --mel'i birlikte çalıştır)")
+        return []
+
+    print(f"  füzyon     mel {mel_veri.sekil} ⊕ telemetri {tel_veri.X_train.shape[1]}d")
+    mu = mel_veri.X_train_normal.mean(axis=(0, 2))
+    sd = mel_veri.X_train_normal.std(axis=(0, 2))
+    sd[sd < 1e-6] = 1.0
+    Xs_tr = _mel_olcekle(mel_veri.X_train_normal, mu, sd)
+    Xs_va, Xs_te = _mel_olcekle(mel_veri.X_val, mu, sd), _mel_olcekle(mel_veri.X_test, mu, sd)
+
+    olc = Olcekleyici().egit(tel_veri.X_train_normal)
+    Xt_tr = olc.uygula(tel_veri.X_train_normal)
+    Xt_va, Xt_te = olc.uygula(tel_veri.X_val), olc.uygula(tel_veri.X_test)
+
+    normal_va = tel_veri.y_val == 0
+    Xs_va_n = Xs_va[normal_va] if normal_va.any() else None
+    Xt_va_n = Xt_va[normal_va] if normal_va.any() else None
+    saat = float((tel_veri.y_test == 0).sum()) * config.PENCERE_SN / 3600.0
+    kir = tel_veri.kirilim("makine_tipi")
+
+    model = FusionAE(epok=8 if hizli else 100, seed=SEED)
+    t0 = time.perf_counter()
+    try:
+        model.egit(Xs_tr, Xt_tr, X_spek_val=Xs_va_n, X_tel_val=Xt_va_n)
+        s_va = model.anomali_skoru(Xs_va, Xt_va)
+        s_te = model.anomali_skoru(Xs_te, Xt_te)
+    except ValueError as e:
+        print(f"    {model.ad:20s} atlandı: {e}")
+        return []
+    satir = _degerlendir(model.ad, tel_veri.y_test, s_te, tel_veri.y_val, s_va, kir, saat, time.perf_counter() - t0)
+    return [satir] if satir else []
+
+
 def strateji_calistir(strateji: str, hizli: bool) -> pd.DataFrame:
-    satirlar = oznitelik_kismi(strateji, hizli) + mel_kismi(strateji, hizli)
+    satirlar = oznitelik_kismi(strateji, hizli) + mel_kismi(strateji, hizli) + fuzyon_kismi(strateji, hizli)
     if not satirlar:
         raise ValueError("hiçbir model değerlendirilemedi (tek sınıflı test/val?)")
     df = pd.DataFrame(satirlar)

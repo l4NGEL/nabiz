@@ -62,8 +62,9 @@ gerçek telemetri kaynağı (şu an sentetik vekil).
   `models/transformer.py` (SpekTransformerAE — maskeli çerçeve yeniden yapılandırma) — log-mel tensörü
 - [x] `dsp/features.py::mel_tensor` (sabit-boyut) + `02_oznitelik_cikar.py --mel` (`data/islenmis/mel.npz`)
   + `data/mel.py` yükleyici
-- [x] `03_model_egit.py` — öznitelik yolu + mel yolu, 6 model ailesi (CNN/RNN/AE/Transformer)
-- [ ] `models/fusion.py` — spektrogram-CNN ⊕ telemetri-MLP (hibrid)
+- [x] `03_model_egit.py` — öznitelik yolu + mel yolu + füzyon, 7 model ailesi (CNN/RNN/AE/Transformer/hibrid)
+- [x] `models/fusion.py` — `FusionAE`: spektrogram-CNN ⊕ telemetri-MLP, ortak darboğaz,
+  ağırlıklı çift yeniden yapılandırma kaybı, dal-bazlı hata ayrıştırma (`anomali_skoru_dallar`)
 - [ ] `models/rul.py` — C-MAPSS
 - [ ] Kalibrasyon (sonar `10_vliz_calibrate`), OOD (sonar `15_vliz_ood`)
 - [ ] Ablasyon (a_/z_/t_ grupları) + 3-5 seed
