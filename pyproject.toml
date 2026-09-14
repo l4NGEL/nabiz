@@ -22,8 +22,9 @@ dependencies = [
 [project.optional-dependencies]
 dev = ["pytest>=7.4", "pytest-cov>=4.1", "ruff>=0.3", "hypothesis>=6.90"]
 data = ["dvc>=3.60"]
-# Faz 2+ (ağır; ayrı kurulur): eğitim ve uç uyarlama
-dl = ["torch>=2.1", "torchaudio>=2.1", "onnx>=1.15", "onnxruntime>=1.17", "mlflow>=2.10"]
+# Faz 2+ (ağır; ayrı kurulur): eğitim (torch) ve uç uyarlama (onnx/onnxruntime).
+# torchaudio YOK — DSP tamamen numpy/scipy (dsp/features.py), torch yalnız model eğitiminde.
+dl = ["torch>=2.1", "onnx>=1.15", "onnxruntime>=1.17", "mlflow>=2.10"]
 
 [tool.setuptools.packages.find]
 where = ["src"]

@@ -69,17 +69,18 @@ Doğrulama yöntemi kodları: **T** test (otomatik), **A** analiz/ölçüm, **D*
 | FR-03 | `models/`: baseline (RMS/IsoForest/Mahalanobis) + AE (dense) + CNN (ConvAE) + RNN (CRNNAE) + Transformer (SpekTransformerAE) + hibrid (FusionAE); `eval/metrics.py`; `03_model_egit.py` | `test_autoencoder.py`, `test_mel_modelleri.py`, `test_fusion.py`, `test_baseline.py`, `test_metrics.py` (~61 test) | **kısmi** — 7 model ailesi + harness hazır (ilan "CNN/RNN/LSTM/AE/Transformers/hibrid" maddesinin TAMAMI), AUC hedefi (≥0.90) MIMII ile |
 | FR-04 | `models/cnn.py` (Faz 2) | `test_model_kalite.py::test_siniflandirma_f1` | planlandı |
 | FR-05 | `models/rul.py` (Faz 2) | `test_model_kalite.py::test_rul_mae` | planlandı |
-| FR-06 | `edge/onnx_disa.py` (Faz 3) | `test_runtime_parite.py` | planlandı |
+| FR-06 | `edge/onnx_disa.py` (export+parite) + `edge/nicemleme.py` (INT8); `04_uc_uyarla.py` | `test_onnx_disa.py`, `test_nicemleme.py` (13 test) | **kısmi** — ONNX Runtime CPU tam; TensorRT/gerçek ARM açık madde |
 | FR-07 | `protocol/mesaj.proto`, `protocol/yayinci.py` (Faz 5) | `test_protokol.py::test_round_trip` | planlandı |
 | FR-08 | `serving/toplayici.py` (Faz 5) | `test_toplayici.py` | planlandı |
 | FR-09 | `serving/dashboard/` (Faz 6) | uçtan uca senaryo | planlandı |
 | PR-01 | `eval/metrics.py::yanlis_alarm_saat`; `03_model_egit.py` raporu | `test_metrics.py::test_yanlis_alarm_saat` | **kısmi** — ölçüm var, hedef (≤1/24s) MIMII ile |
 | PR-03 | `eval/metrics.py::pauc` (DCASE `max_fpr`) + baseline karşılaştırması | `test_metrics.py::test_pauc_*` | **kısmi** — pAUC hesabı + baseline var, hedef MIMII ile |
-| PR-02, PR-04, PR-05 | — | `bench/` ölçüm betikleri (Faz 3) | planlandı |
+| PR-02 | `edge/bench.py::gecikme_olc`; `04_uc_uyarla.py` raporu (x86 vekili) | `test_bench.py` | **kısmi** — x86 ölçümü var (P95 dense_ae 0.16 ms, conv_ae 1.6 ms sentetikte), gerçek ARM açık madde |
+| PR-04, PR-05 | `04_uc_uyarla.py` (model boyutu); verim ölçümü açık | — | **kısmi** — boyut ölçülüyor (dense_ae INT8 0.07 MB), verim/RAM açık madde |
 | RB-01 | `data/splits.py::rejim_holdout_split` + `03_model_egit.py` domain-shift Δ tablosu | `test_splits.py::test_rejim_holdout_*` | **kısmi** — split + rapor var, MIMII DUE Faz 2 sonu |
 | RB-02 | `eval/gorulmemiş_ariza.py` (Faz 2) | `test_model_kalite.py::test_gorulmemis_ariza` | planlandı |
 | RB-03 | `edge/tampon.py` (Faz 5) | `test_protokol.py::test_ag_kesintisi` | planlandı |
-| RB-04 | `edge/nicemleme.py` (Faz 3) | `test_nicemleme_parite.py` | planlandı |
+| RB-04 | `edge/nicemleme.py::int8_nicemle` (MatMul/Gemm dinamik PTQ) + `edge/onnx_disa.py::skor_paritesi` | `test_nicemleme.py::test_int8_skor_paritesi_yuksek` | **kısmi** — dense_ae'de tam karşılandı (korr 1.0000, ΔAUC 0.000 sentetikte); ConvAE'de Conv katmanları nicemlenmiyor (bkz. yol-haritası) |
 | RB-05 | `dsp/dogrulama.py` (`sonlu_1b`, `pozitif`) — tüm DSP modülleri | `test_dsp.py::test_nan_girdi_hata`, `test_hizalama.py::test_kanal_nan_reddedilir`, `test_titresim.py::test_bant_gecir_gecersiz_bant` vb. | **karşılandı** |
 | QR-01 | `.dvc/`, `data/splits.py::manifest_parmak_izi` | `test_splits.py::test_manifest_parmak_izi_kararli` | **karşılandı** |
 | QR-02 | `.github/workflows/ci.yml` | — | **kısmi** — Faz 0 kapıları aktif |

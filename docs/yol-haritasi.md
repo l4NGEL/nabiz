@@ -72,14 +72,25 @@ gerçek telemetri kaynağı (şu an sentetik vekil).
 - [ ] Domain-shift (MIMII DUE), görülmemiş arıza tipi, çapraz-veri — test katmanı 3
 - [ ] **Gerçek MIMII ile yeniden çalıştır** — sentetikte modeller doygun (AUC≈1)
 
-## Faz 3 — Uç uyarlama + optimizasyon · 1 hafta
+## Faz 3 — Uç uyarlama + optimizasyon · 1 hafta · **başladı**
 
-- [ ] `edge/onnx_disa.py` — ONNX export + doğrulama (sonar `03_onnx_disa_aktar` uyarlaması)
-- [ ] PTQ INT8 + QAT; nicemleme paritesi testi — RB-04
+- [x] `edge/onnx_disa.py` — ONNX export (dinamik yığın ekseni), FP32 parite doğrulama
+  (maks fark, korelasyon), anomali-skoru paritesi. Çok-girdili modeller de (FusionAE) destekli.
+  `dynamo=False` kasıtlı (legacy TorchScript exporter — kod içinde gerekçeli)
+- [x] `edge/nicemleme.py` — PTQ INT8 dinamik nicemleme; **öntanım yalnız MatMul/Gemm**
+  (Conv2d dinamik nicemleme ONNX Runtime CPU EP'de `ConvInteger` NOT_IMPLEMENTED —
+  gerçek/belgelenen kısıt, statik+kalibrasyonlu nicemleme gerekir → açık madde)
+- [x] `edge/bench.py` — tek-örnek gecikme P50/P95/P99 + verim (ONNX Runtime CPU)
+- [x] `04_uc_uyarla.py` — DenseAE + ConvAE: export → nicemle → parite → gecikme →
+  `sonuclar/faz3-uc.md` (RB-04 + PR-02 kabul kriteri sütunları)
+- [x] Nicemleme paritesi testleri — RB-04 (`test_nicemleme.py`)
+- [x] Gecikme ölçüm testleri — PR-02 (`test_bench.py`)
+- [ ] QAT (quantization-aware training) — şu an yalnız PTQ
+- [ ] Conv2d için statik nicemleme (kalibrasyon verisiyle) — ConvAE'de INT8 şu an yalnız Linear katmanları kapsıyor
 - [ ] Budama + distilasyon → küçük öğrenci model
-- [ ] TensorRT motor (RTX 2080 lokal; hedef Jetson/Ampere)
-- [ ] `bench/` — gecikme P50/P95/P99, verim, bellek, güç; x86 + Oracle ARM + QEMU
-- [ ] Soak testi kurulumu
+- [ ] TensorRT motor (RTX 2080 lokal; hedef Jetson/Ampere) — şu an yalnız ONNX Runtime CPU EP
+- [ ] Gerçek ARM ölçümü: Oracle Cloud Always Free / QEMU (donanım gerekmez — bkz. sohbet geçmişi)
+- [ ] Soak testi kurulumu (24-72 saat, bellek sızıntısı)
 
 ## Faz 4 — C++ çıkarım yolu · 4-5 gün
 

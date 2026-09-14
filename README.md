@@ -15,7 +15,7 @@ saha testi → raporlama.
 | 0 | Kapsam + veri şartnamesi + split doğrulama + CI | **tamam** (kalan: DVC remote + gerçek MIMII) |
 | 1 | DSP önyüz — hizalama, order/envelope, telemetri, öznitelik hattı | **tamam** (68 test) |
 | 2 | Değerlendirme (AUC/pAUC/ECE) + 7 model ailesi (baseline / dense AE / ConvAE / CRNN / Transformer / FusionAE hibrid) | **büyük ölçüde tamam** (131 test); RUL + kalibrasyon + gerçek MIMII sırada |
-| 3 | ONNX / INT8 / TensorRT + budama/distilasyon + uç benchmark | planlandı |
+| 3 | ONNX export + INT8 (PTQ) + gecikme ölçümü (x86 CPU) | **başladı** (148 test); TensorRT + Conv statik nicemleme + gerçek ARM sırada |
 | 4 | C++ çıkarım yolu + CUDA mel çekirdeği | planlandı |
 | 5 | Protobuf + MQTT/DDS + merkezi toplayıcı | planlandı |
 | 6 | Saha testi simülasyonu + rapor + dashboard | planlandı |
@@ -28,11 +28,13 @@ Ayrıntı: [docs/yol-haritasi.md](docs/yol-haritasi.md)
 python -m venv .venv
 .venv/Scripts/activate        # Windows;  Linux/mac: source .venv/bin/activate
 pip install -e ".[dev]"
-pip install -e ".[dl]"        # Faz 2+ : torch (autoencoder). CUDA için:
+pip install -e ".[dl]"        # Faz 2+ : torch (autoencoder) + onnx/onnxruntime (uç uyarlama)
+                              # CUDA için torch'u ayrıca kur:
                               #   pip install torch --index-url https://download.pytorch.org/whl/cu121
 ```
 
-`torch` yoksa `03_model_egit.py` yalnız baseline'ları çalıştırır (AE atlanır); `pytest` AE testlerini `skip` eder.
+`torch` yoksa `03_model_egit.py` yalnız baseline'ları çalıştırır (AE atlanır); `onnx`/`onnxruntime`
+yoksa `04_uc_uyarla.py` hata mesajıyla çıkar. `pytest` eksik bağımlılığa göre ilgili testleri `skip` eder.
 
 ## Hızlı başlangıç (gerçek veri olmadan)
 
@@ -40,8 +42,9 @@ pip install -e ".[dl]"        # Faz 2+ : torch (autoencoder). CUDA için:
 python 00_veri_indir.py --sentetik      # data/ham/sentetik/ altına küçük WAV seti (2 rejim)
 python 01_split_dogrula.py               # manifest + 3 split + sızıntı kontrolü + parmak izi
 python 02_oznitelik_cikar.py --mel       # WAV → 2 sn pencere → 168 öznitelik + log-mel tensör
-python 03_model_egit.py --hizli          # 6 model ailesi → sonuclar/faz2-modeller.md
-pytest -q                                # 131 birim testi
+python 03_model_egit.py --hizli          # 7 model ailesi → sonuclar/faz2-modeller.md
+python 04_uc_uyarla.py --hizli           # ONNX + INT8 + gecikme → sonuclar/faz3-uc.md
+pytest -q                                # 148 birim testi
 ```
 
 ## Gerçek veri
