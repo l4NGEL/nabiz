@@ -16,7 +16,7 @@ saha testi → raporlama.
 | 1 | DSP önyüz — hizalama, order/envelope, telemetri, öznitelik hattı | **tamam** (68 test) |
 | 2 | Değerlendirme (AUC/pAUC/ECE) + 7 model ailesi + RUL (C-MAPSS, GRU) + kalibrasyon/OOD | **büyük ölçüde tamam** (177 test); ablasyon/MLflow + gerçek MIMII/C-MAPSS sırada |
 | 3 | ONNX export + INT8 (PTQ) + gecikme ölçümü (x86 CPU) | **başladı**; TensorRT + Conv statik nicemleme + gerçek ARM sırada |
-| 4 | C++ çıkarım yolu + CUDA mel çekirdeği | planlandı |
+| 4 | C++ ONNX Runtime çıkarım yolu | **başladı** (DenseAE; golden-vector parite GEÇTİ); mel-tensör modelleri + CUDA çekirdeği sırada |
 | 5 | Protobuf + MQTT/DDS + merkezi toplayıcı | planlandı |
 | 6 | Saha testi simülasyonu + rapor + dashboard | planlandı |
 
@@ -45,8 +45,43 @@ python 02_oznitelik_cikar.py --mel       # WAV → 2 sn pencere → 168 öznitel
 python 03_model_egit.py --hizli          # 7 model ailesi → sonuclar/faz2-modeller.md
 python 04_uc_uyarla.py --hizli           # ONNX + INT8 + gecikme → sonuclar/faz3-uc.md
 python 00_veri_indir.py --cmapss-sentetik && python 05_rul_egit.py --hizli  # RUL → sonuclar/faz2-rul.md
-pytest -q                                # 177 birim testi
+pytest -q                                # 180 birim testi (C++ build varsa +3)
 ```
+
+## Faz 4 — C++ ONNX Runtime çıkarım yolu
+
+Kapsam: DenseAE (öznitelik-vektörü, 168-boyut) — WAV→mel çıkarımı henüz C++'ta
+değil (Python `dsp/features.py`'de), bu bilinçli bir sınırlama (bkz. `cpp/src/nabiz_cikarim.cpp`
+başlığı). ConvAE/CRNN/Transformer (mel-tensör, 3B girdi) henüz desteklenmiyor.
+
+**Gereksinimler:** CMake ≥3.20 + MSVC (Visual Studio "Desktop development with C++"
+bileşeni; VS2022 kendi CMake'ini de getirir) + ONNX Runtime C++ SDK.
+
+```bash
+# 1) ONNX Runtime C++ SDK indir (~80 MB), third_party/onnxruntime/ altına çıkar (git dışı)
+curl -L -o third_party/onnxruntime.zip \
+  https://github.com/microsoft/onnxruntime/releases/download/v1.23.2/onnxruntime-win-x64-1.23.2.zip
+# third_party/ içinde unzip et, klasörü third_party/onnxruntime/ olarak adlandır
+
+# 2) CMake configure + build (VS2022 kendi CMake'i; PATH'te yoksa tam yol kullan)
+cmake -G "Visual Studio 17 2022" -A x64 -S cpp -B cpp/build
+cmake --build cpp/build --config Release
+# çıktı: cpp/build/Release/nabiz_cikarim.exe (+ onnxruntime.dll yanına kopyalanır)
+
+# 3) Golden-vector parite testi (Python ONNX Runtime vs C++ ONNX Runtime, aynı .onnx)
+python 04_uc_uyarla.py --hizli            # modeller/edge/dense_ae_fp32.onnx üretir
+python 06_golden_uret.py                  # cpp/testler/altin_{girdi,skor}.csv üretir
+python cpp/testler/dogrula.py             # C++ ikilisini çalıştırır, karşılaştırır
+```
+
+**Sonuç (bu makinede):** FP32 — maks fark 4.5e-6, korelasyon 1.000000 (tam parite).
+INT8 — korelasyon 1.000000 ama maks fark ~0.05 (sıkı toleransı aşıyor): Python
+onnxruntime wheel'i ile C++ SDK derlemesi arasında kuantize çekirdeklerde küçük
+sayısal fark var — **beklenen, belgelenen bir bulgu**, sıralama/ayrım bozulmuyor.
+C++ çıkarım gecikmesi P50 ≈ 0.02 ms (Python ONNX Runtime'dan da hızlı — dil
+binding'i ek yükü yok).
+
+`pytest` bu testleri (`tests/test_cpp_parity.py`) CMake build yoksa otomatik atlar.
 
 ## Gerçek veri
 
@@ -65,10 +100,12 @@ Kaynak eşlemesi ve kayıt protokolü: [docs/veri-toplama-sartnamesi.md](docs/ve
 ```
 00_*.py … 09_*.py     numaralı boru hattı adımları (çalıştırılabilir)
 src/nabiz/            paylaşılan modüller (data, dsp, models, eval, edge, protocol, serving)
+cpp/                  C++ ONNX Runtime çıkarım ikili dosyası (CMakeLists.txt, src/, testler/)
+third_party/          vendored SDK — ör. onnxruntime/ (indirilir, git dışı)
 tests/               birim + entegrasyon testleri
 docs/                şartname, gereksinimler, test planı, yol haritası
 data/                ham + işlenmiş veri (git dışı)
-modeller/ deneyler/  eğitim çıktıları (git dışı)
+modeller/ deneyler/  eğitim çıktıları (git dışı) — modeller/edge/*.onnx dahil
 sonuclar/            split özeti, parmak izi, saha test raporu (versiyonlu)
 ```
 

@@ -138,10 +138,10 @@ test senaryosu → geç/kal kriteri → sonuç.
 | Katman | Faz | Durum |
 |--------|-----|-------|
 | 0 Veri/split | 0 | **aktif** — `test_splits.py` (16 test) |
-| 1 DSP birim | 1 | **aktif** — `test_dsp.py` + `test_hizalama.py` + `test_titresim.py` + `test_telemetri.py` + `test_dsp_property.py` (52 test); C++ golden-vector paritesi Faz 4 |
+| 1 DSP birim | 1 | **aktif** — `test_dsp.py` + `test_hizalama.py` + `test_titresim.py` + `test_telemetri.py` + `test_dsp_property.py` (52 test); DSP'nin (mel/order) C++ portu YOK — yalnız model-çıkarımın C++ paritesi geçti (`test_cpp_parity.py`, katman 4'te) |
 | 2 Model kalite | 2 | **aktif** — `test_metrics.py` + `test_baseline.py` + `test_autoencoder.py` + `test_mel_modelleri.py` + `test_fusion.py` + `test_oznitelik.py` + `test_mel_loader.py` + `test_cmapss.py` + `test_rul_model.py` + `test_kalibrasyon.py` + `test_ood.py` (~102 test); kalibrasyon (Platt/ECE) + OOD (gürültü/karıştırma AUC) `03_model_egit.py`'ye entegre; gerçek MIMII/C-MAPSS AUC/MAE hedefi kalan tek açık madde |
 | 3 Domain shift | 2 | **kısmi** — `03_model_egit.py` domain-shift Δ tablosu (birim_disi vs rejim_holdout); MIMII DUE + görülmemiş arıza tipi testleri sırada |
-| 4 Uç/donanım | 3-4 | **aktif** — `test_onnx_disa.py` + `test_nicemleme.py` + `test_bench.py` (17 test); x86 CPU'da gerçek ölçüm (`sonuclar/faz3-uc.md`); TensorRT/gerçek ARM/soak sırada |
+| 4 Uç/donanım | 3-4 | **aktif** — `test_onnx_disa.py` + `test_nicemleme.py` + `test_bench.py` + `test_cpp_parity.py` (20 test); x86 CPU'da gerçek ölçüm (`sonuclar/faz3-uc.md`), C++ golden-vector paritesi geçti (FP32 tam, INT8 gevşek); TensorRT/gerçek ARM/soak sırada |
 | 5 Protokol | 5 | planlandı |
 | 6 CI kapıları | sürekli | **kısmi** — Faz 0 kapıları |
 | 7 Saha kabul | 6 | planlandı |

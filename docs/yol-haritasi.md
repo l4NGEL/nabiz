@@ -102,12 +102,23 @@ gerçek telemetri kaynağı (şu an sentetik vekil).
 - [ ] Gerçek ARM ölçümü: Oracle Cloud Always Free / QEMU (donanım gerekmez — bkz. sohbet geçmişi)
 - [ ] Soak testi kurulumu (24-72 saat, bellek sızıntısı)
 
-## Faz 4 — C++ çıkarım yolu · 4-5 gün
+## Faz 4 — C++ çıkarım yolu · 4-5 gün · **başladı**
 
-- [ ] `cpp/` — ONNX Runtime C++ API çıkarım ikili dosyası: sensör akışı → öznitelik → model → tespit
-- [ ] CUDA mel çekirdeği (AvioHMI Sobel deseni) — opsiyonel, RTX 2080'de
-- [ ] Golden-vector parite testi (Python ↔ C++) — test katmanı 1
-- [ ] CMake + CI'da derleme
+- [x] `cpp/` — CMakeLists.txt + `src/nabiz_cikarim.cpp`: ONNX Runtime C++ API ile
+  öznitelik-vektörü (DenseAE, 168d) çıkarımı. MSVC/VS2022 + CMake 3.31 ile ilk denemede derlendi.
+- [x] ONNX Runtime C++ SDK indirme + link (`third_party/onnxruntime/`, git dışı) — README'de belgelendi
+- [x] Golden-vector parite testi (Python ↔ C++) — test katmanı 1/4 (`06_golden_uret.py` +
+  `cpp/testler/dogrula.py` + `tests/test_cpp_parity.py`, CMake build yoksa otomatik `skip`).
+  **FP32: maks fark 4.5e-6, korelasyon 1.000000 (tam parite).**
+  **INT8: korelasyon 1.000000, maks fark ~0.05 — Python wheel vs C++ SDK derlemesi arası
+  kuantize çekirdek farkı, belgelenen/beklenen bulgu, sıralama bozulmuyor.**
+- [x] C++ gecikme ölçümü: P50 ≈ 0.02 ms (Python ONNX Runtime'dan hızlı — binding yükü yok)
+- [ ] Sensör akışından (WAV) uçtan uca: şu an C++ yalnız ÖZNİTELİK VEKTÖRÜ alıyor;
+  ham WAV→mel çıkarımı C++'a taşınmadı (büyük ek iş — DSP'nin tamamının C++ portu).
+  Bilinçli sınırlandırma, `cpp/src/nabiz_cikarim.cpp` başlığında gerekçeli.
+- [ ] Mel-tensör modelleri (ConvAE/CRNN/Transformer, 3B girdi) C++'ta desteklenmiyor — yalnız DenseAE
+- [ ] CUDA mel çekirdeği (AvioHMI Sobel deseni) — opsiyonel, RTX 2080'de mümkün
+- [ ] CI'da derleme (CI runner'da MSVC/CMake yok — GitHub Actions `windows-latest` + CMake ile mümkün, henüz eklenmedi)
 
 ## Faz 5 — Protokol + merkez · 4-5 gün
 

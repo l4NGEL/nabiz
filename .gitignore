@@ -37,6 +37,11 @@ coverage.xml
 *.mat
 *.h5
 
+# vendored SDK (ör. ONNX Runtime C++ — third_party/onnxruntime/, indirilir, commit edilmez)
+/third_party/
+# CMake yapı dizini
+cpp/build/
+
 # IDE / OS
 .vscode/
 .idea/
