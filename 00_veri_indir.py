@@ -4,6 +4,8 @@ Kullanım:
   python 00_veri_indir.py --sentetik            # offline: küçük sahte WAV seti
   python 00_veri_indir.py --mimii-bilgi         # MIMII indirme talimatları
   python 00_veri_indir.py --mimii fan --snr -6  # tek makine tipini indir (büyük)
+  python 00_veri_indir.py --cmapss-sentetik     # offline: sahte C-MAPSS trajectory'leri
+  python 00_veri_indir.py --cmapss-bilgi        # C-MAPSS indirme talimatları
 
 Sentetik veri MIMII dizin düzenini taklit eder:
   data/ham/sentetik/<tip>/id_<NN>/<normal|abnormal>/<dosya>.wav
@@ -21,11 +23,13 @@ sys.path.insert(0, str(Path(__file__).parent / "src"))
 
 from nabiz import config  # noqa: E402
 from nabiz.cli import utf8_cikti  # noqa: E402
+from nabiz.data import cmapss as C  # noqa: E402
 
 utf8_cikti()
 
 MIMII_ZENODO = "https://zenodo.org/records/3384388"
 MIMII_SNR = {"-6": "-6_dB", "0": "0_dB", "6": "6_dB", "min6dB": "-6_dB"}
+CMAPSS_KAYNAK = "https://www.nasa.gov/intelligent-systems-division/discovery-and-systems-health/pcoe/pcoe-data-set-repository/"
 
 
 def sentetik_wav_uret(
@@ -96,12 +100,33 @@ Sonra:  python 01_split_dogrula.py
     )
 
 
+def cmapss_bilgi() -> None:
+    print(
+        f"""
+C-MAPSS veri seti — NASA türbofan motor bozulma simülasyonu (RUL tahmini)
+
+  Kaynak : {CMAPSS_KAYNAK}
+  Lisans : kamu malı (NASA)
+  Dosya  : train_FD001.txt, test_FD001.txt, RUL_FD001.txt (4 alt-set: FD001-FD004)
+
+İndirdikten sonra:
+  {config.HAM_VERI}/cmapss/train_FD001.txt
+  {config.HAM_VERI}/cmapss/test_FD001.txt
+  {config.HAM_VERI}/cmapss/RUL_FD001.txt
+
+Sonra:  python 05_rul_egit.py
+"""
+    )
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--sentetik", action="store_true", help="küçük sahte WAV seti üret")
     ap.add_argument("--mimii-bilgi", action="store_true", help="MIMII indirme talimatları")
     ap.add_argument("--mimii", metavar="TIP", help="MIMII makine tipi (fan/pump/slider/valve)")
     ap.add_argument("--snr", default="-6", help="MIMII SNR koşulu (-6 / 0 / 6)")
+    ap.add_argument("--cmapss-sentetik", action="store_true", help="sahte C-MAPSS trajectory'leri üret")
+    ap.add_argument("--cmapss-bilgi", action="store_true", help="C-MAPSS indirme talimatları")
     ap.add_argument("--seed", type=int, default=0)
     a = ap.parse_args()
 
@@ -109,6 +134,18 @@ def main() -> int:
 
     if a.mimii_bilgi:
         mimii_bilgi()
+        return 0
+
+    if a.cmapss_bilgi:
+        cmapss_bilgi()
+        return 0
+
+    if a.cmapss_sentetik:
+        df = C.sentetik_uret(seed=a.seed)
+        hedef = config.HAM_VERI / "cmapss" / "train_sentetik.csv"
+        hedef.parent.mkdir(parents=True, exist_ok=True)
+        df.to_csv(hedef, index=False)
+        print(f"{df['birim'].nunique()} birim, {len(df)} satır yazildi -> {hedef}")
         return 0
 
     if a.sentetik:

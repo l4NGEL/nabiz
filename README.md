@@ -14,8 +14,8 @@ saha testi → raporlama.
 |-----|--------|-------|
 | 0 | Kapsam + veri şartnamesi + split doğrulama + CI | **tamam** (kalan: DVC remote + gerçek MIMII) |
 | 1 | DSP önyüz — hizalama, order/envelope, telemetri, öznitelik hattı | **tamam** (68 test) |
-| 2 | Değerlendirme (AUC/pAUC/ECE) + 7 model ailesi (baseline / dense AE / ConvAE / CRNN / Transformer / FusionAE hibrid) | **büyük ölçüde tamam** (131 test); RUL + kalibrasyon + gerçek MIMII sırada |
-| 3 | ONNX export + INT8 (PTQ) + gecikme ölçümü (x86 CPU) | **başladı** (148 test); TensorRT + Conv statik nicemleme + gerçek ARM sırada |
+| 2 | Değerlendirme (AUC/pAUC/ECE) + 7 model ailesi + RUL (C-MAPSS, GRU) | **büyük ölçüde tamam** (164 test); kalibrasyon/OOD + gerçek MIMII/C-MAPSS sırada |
+| 3 | ONNX export + INT8 (PTQ) + gecikme ölçümü (x86 CPU) | **başladı**; TensorRT + Conv statik nicemleme + gerçek ARM sırada |
 | 4 | C++ çıkarım yolu + CUDA mel çekirdeği | planlandı |
 | 5 | Protobuf + MQTT/DDS + merkezi toplayıcı | planlandı |
 | 6 | Saha testi simülasyonu + rapor + dashboard | planlandı |
@@ -44,7 +44,8 @@ python 01_split_dogrula.py               # manifest + 3 split + sızıntı kontr
 python 02_oznitelik_cikar.py --mel       # WAV → 2 sn pencere → 168 öznitelik + log-mel tensör
 python 03_model_egit.py --hizli          # 7 model ailesi → sonuclar/faz2-modeller.md
 python 04_uc_uyarla.py --hizli           # ONNX + INT8 + gecikme → sonuclar/faz3-uc.md
-pytest -q                                # 148 birim testi
+python 00_veri_indir.py --cmapss-sentetik && python 05_rul_egit.py --hizli  # RUL → sonuclar/faz2-rul.md
+pytest -q                                # 164 birim testi
 ```
 
 ## Gerçek veri
@@ -54,6 +55,7 @@ MIMII (akustik endüstriyel makine — DCASE Task 2 tabanı), CWRU / Paderborn r
 
 ```bash
 python 00_veri_indir.py --mimii-bilgi
+python 00_veri_indir.py --cmapss-bilgi
 ```
 
 Kaynak eşlemesi ve kayıt protokolü: [docs/veri-toplama-sartnamesi.md](docs/veri-toplama-sartnamesi.md)

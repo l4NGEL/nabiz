@@ -65,7 +65,14 @@ gerçek telemetri kaynağı (şu an sentetik vekil).
 - [x] `03_model_egit.py` — öznitelik yolu + mel yolu + füzyon, 7 model ailesi (CNN/RNN/AE/Transformer/hibrid)
 - [x] `models/fusion.py` — `FusionAE`: spektrogram-CNN ⊕ telemetri-MLP, ortak darboğaz,
   ağırlıklı çift yeniden yapılandırma kaybı, dal-bazlı hata ayrıştırma (`anomali_skoru_dallar`)
-- [ ] `models/rul.py` — C-MAPSS
+- [x] `models/rul.py` — `RULRegresor` (GRU + MLP kafa, hedef standardizasyonu —
+  standardize edilmemiş RUL'de ortalamaya sıkışma tespit edilip düzeltildi)
+- [x] `data/cmapss.py` — gerçek format okuma (train/test/RUL dosyaları) + sentetik
+  üretim (aynı şema) + `pencerele` (kaydırmalı, eğitim) + `son_pencere` (resmi
+  protokol, birim başına 1 tahmin — C-MAPSS skorunu suni şişirmez)
+- [x] `00_veri_indir.py --cmapss-sentetik` / `--cmapss-bilgi`
+- [x] `05_rul_egit.py` — train→val/test birim split, GRU vs ortalama-baseline,
+  MAE/RMSE/C-MAPSS skoru → `sonuclar/faz2-rul.md` (baseline'ı geçti: EVET)
 - [ ] Kalibrasyon (sonar `10_vliz_calibrate`), OOD (sonar `15_vliz_ood`)
 - [ ] Ablasyon (a_/z_/t_ grupları) + 3-5 seed
 - [ ] MLflow deney takibi
