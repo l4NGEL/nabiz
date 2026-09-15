@@ -73,7 +73,10 @@ gerçek telemetri kaynağı (şu an sentetik vekil).
 - [x] `00_veri_indir.py --cmapss-sentetik` / `--cmapss-bilgi`
 - [x] `05_rul_egit.py` — train→val/test birim split, GRU vs ortalama-baseline,
   MAE/RMSE/C-MAPSS skoru → `sonuclar/faz2-rul.md` (baseline'ı geçti: EVET)
-- [ ] Kalibrasyon (sonar `10_vliz_calibrate`), OOD (sonar `15_vliz_ood`)
+- [x] Kalibrasyon (`eval/kalibrasyon.py::PlattKalibratoru` — val'de uydur, test'te ECE öncesi/sonrası)
+  ve OOD (`eval/ood.py` — gürültü + öznitelik-karıştırma) `03_model_egit.py`'ye entegre
+  (dense_ae için; ilginç bulgu: rejim_holdout'ta kalibrasyon domain-shift altında
+  İYİLEŞMEDİ [ECE 0.060→0.094] — val kaynak domaininden, test hedeften; dürüstçe raporlandı)
 - [ ] Ablasyon (a_/z_/t_ grupları) + 3-5 seed
 - [ ] MLflow deney takibi
 - [ ] Domain-shift (MIMII DUE), görülmemiş arıza tipi, çapraz-veri — test katmanı 3

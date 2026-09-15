@@ -29,7 +29,9 @@ import pandas as pd  # noqa: E402
 from nabiz import config  # noqa: E402
 from nabiz.cli import utf8_cikti  # noqa: E402
 from nabiz.data import oznitelik as OZ  # noqa: E402
+from nabiz.eval import kalibrasyon as KAL  # noqa: E402
 from nabiz.eval import metrics as MT  # noqa: E402
+from nabiz.eval import ood as OOD  # noqa: E402
 from nabiz.models import baseline as B  # noqa: E402
 from nabiz.models.temel import Olcekleyici  # noqa: E402
 
@@ -78,7 +80,32 @@ def _degerlendir(ad, y_te, s_te, y_va, s_va, kirilim, saat, sn) -> dict | None:
     return _rapor_satiri(ad, rapor, sn)
 
 
-def oznitelik_kismi(strateji: str, hizli: bool) -> list[dict]:
+def _kalibrasyon_ood_calistir(ad: str, model, Xte, y_test, Xva, y_val, s_te, s_va) -> dict | None:
+    """Val ile Platt kalibrasyonu (ECE öncesi/sonrası) + OOD ayrım gücü (gürültü +
+    öznitelikler-arası korelasyonu bozulmuş girdi). RB — 'kendinden emin yanlış' kontrolü."""
+    try:
+        kal = KAL.PlattKalibratoru().egit(s_va, y_val)
+    except ValueError as e:
+        print(f"    kalibrasyon/OOD atlandı: {e}")
+        return None
+    p_te = kal.olasilik(s_te)
+    naif = (s_te - s_te.min()) / (s_te.max() - s_te.min() + 1e-12)
+    ece_ham, ece_kalibre = MT.ece(y_test, naif), MT.ece(y_test, p_te)
+
+    s_normal_te = s_te[y_test == 0]
+    ood_gurultu = OOD.ood_karsilastir(s_normal_te, model.anomali_skoru(OOD.gurultu_uret(Xte, seed=SEED)))
+    ood_karisik = OOD.ood_karsilastir(s_normal_te, model.anomali_skoru(OOD.karistir_uret(Xte, seed=SEED)))
+    print(
+        f"    kalibrasyon: ECE {ece_ham:.3f}->{ece_kalibre:.3f}  |  "
+        f"OOD AUC gürültü {ood_gurultu['ayrim_auc']:.3f} / karışık {ood_karisik['ayrim_auc']:.3f}"
+    )
+    return {
+        "model": ad, "ece_ham": ece_ham, "ece_kalibre": ece_kalibre,
+        "ood_gurultu_auc": ood_gurultu["ayrim_auc"], "ood_karisik_auc": ood_karisik["ayrim_auc"],
+    }
+
+
+def oznitelik_kismi(strateji: str, hizli: bool) -> tuple[list[dict], dict | None]:
     veri = OZ.yukle(strateji)
     print(f"  öznitelik  {veri.ozet()}")
     olc = Olcekleyici().egit(veri.X_train_normal)
@@ -97,6 +124,7 @@ def oznitelik_kismi(strateji: str, hizli: bool) -> list[dict]:
         isler.append((DenseAE(epok=8 if hizli else 120, seed=SEED), "ae"))
 
     satirlar = []
+    kalib_ood = None
     for model, tur in isler:
         t0 = time.perf_counter()
         try:
@@ -115,7 +143,9 @@ def oznitelik_kismi(strateji: str, hizli: bool) -> list[dict]:
         s = _degerlendir(model.ad, veri.y_test, s_te, veri.y_val, s_va, kir, saat, time.perf_counter() - t0)
         if s:
             satirlar.append(s)
-    return satirlar
+        if tur == "ae":  # yalnız DenseAE için — 7 modelin hepsinde tekrarlamaya gerek yok
+            kalib_ood = _kalibrasyon_ood_calistir(model.ad, model, Xte, veri.y_test, Xva, veri.y_val, s_te, s_va)
+    return satirlar, kalib_ood
 
 
 def _mel_olcekle(X: np.ndarray, mu: np.ndarray, sd: np.ndarray) -> np.ndarray:
@@ -203,16 +233,19 @@ def fuzyon_kismi(strateji: str, hizli: bool) -> list[dict]:
     return [satir] if satir else []
 
 
-def strateji_calistir(strateji: str, hizli: bool) -> pd.DataFrame:
-    satirlar = oznitelik_kismi(strateji, hizli) + mel_kismi(strateji, hizli) + fuzyon_kismi(strateji, hizli)
+def strateji_calistir(strateji: str, hizli: bool) -> tuple[pd.DataFrame, dict | None]:
+    oz_satirlar, kalib_ood = oznitelik_kismi(strateji, hizli)
+    satirlar = oz_satirlar + mel_kismi(strateji, hizli) + fuzyon_kismi(strateji, hizli)
     if not satirlar:
         raise ValueError("hiçbir model değerlendirilemedi (tek sınıflı test/val?)")
     df = pd.DataFrame(satirlar)
     df.insert(0, "strateji", strateji)
-    return df
+    if kalib_ood:
+        kalib_ood = {**kalib_ood, "strateji": strateji}
+    return df, kalib_ood
 
 
-def rapor_yaz(tablolar: list[pd.DataFrame], hizli: bool) -> Path:
+def rapor_yaz(tablolar: list[pd.DataFrame], hizli: bool, kalib_ood_listesi: list[dict]) -> Path:
     config.SONUC_DIZINI.mkdir(parents=True, exist_ok=True)
     yol = config.SONUC_DIZINI / "faz2-modeller.md"
     goster = ["strateji", "model", "AUC", "AUC_CI", "pAUC", "F1", "precision", "recall", "FPR", "yanlış_alarm/sa", "sn"]
@@ -248,6 +281,22 @@ def rapor_yaz(tablolar: list[pd.DataFrame], hizli: bool) -> Path:
                     f" (Δ {float(bd.iloc[0] - rh.iloc[0]):+.3f})"
                 )
 
+    if kalib_ood_listesi:
+        parcalar.append(
+            "\n## Kalibrasyon + OOD (dense_ae) — RB benzeri sağlamlık kontrolü\n\n"
+            "ECE: ham (min-max normalize skor) vs Platt-kalibre olasılık, validasyon üzerinde "
+            "uydurulmuş, test'te ölçülmüş. OOD AUC: eğitilmiş model, iç-dağılım normali "
+            "gürültü/öznitelik-karışık (yapısı bozulmuş) girdiden ayırt edebiliyor mu "
+            "(1.0 = tam ayırt ediyor, 0.5 = ayıramıyor → 'kendinden emin yanlış' riski).\n"
+        )
+        parcalar.append("| strateji | model | ECE ham | ECE kalibre | OOD AUC (gürültü) | OOD AUC (karışık) |")
+        parcalar.append("|---|---|---:|---:|---:|---:|")
+        for k in kalib_ood_listesi:
+            parcalar.append(
+                f"| {k['strateji']} | {k['model']} | {k['ece_ham']:.3f} | {k['ece_kalibre']:.3f} | "
+                f"{k['ood_gurultu_auc']:.3f} | {k['ood_karisik_auc']:.3f} |"
+            )
+
     yol.write_text("\n".join(parcalar), encoding="utf-8")
     return yol
 
@@ -266,17 +315,21 @@ def main() -> int:
     stratejiler = [a.strateji] if a.strateji else ["birim_disi", "rejim_holdout"]
     print(f"torch: {'var' if TORCH_VAR else 'YOK'}  ·  mel.npz: {(config.ISLENMIS_VERI / 'mel.npz').exists()}")
     tablolar = []
+    kalib_ood_listesi = []
     for s in stratejiler:
         print(f"\n[{s}]")
         try:
-            tablolar.append(strateji_calistir(s, a.hizli))
+            df, kalib_ood = strateji_calistir(s, a.hizli)
+            tablolar.append(df)
+            if kalib_ood:
+                kalib_ood_listesi.append(kalib_ood)
         except (ValueError, FileNotFoundError) as e:
             print(f"  atlandı: {e}")
 
     if not tablolar:
         print("HATA: hiçbir strateji çalışmadı")
         return 1
-    yol = rapor_yaz(tablolar, a.hizli)
+    yol = rapor_yaz(tablolar, a.hizli, kalib_ood_listesi)
     print(f"\nyazildi -> {yol}")
     return 0
 
