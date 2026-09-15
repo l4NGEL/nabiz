@@ -83,14 +83,20 @@ MIMII veri seti — akustik endüstriyel makine anomali tespiti (DCASE 2020 Task
 
   Kaynak : {MIMII_ZENODO}
   Lisans : CC BY 4.0
-  Boyut  : SNR koşulu başına ~10 GB (fan/pump/slider/valve birlikte)
+  Boyut  : 12 dosya, toplam ~100 GB — HER (makine tipi × SNR) AYRI zip, ~7-11 GB
+           (Zenodo API'den doğrulandı 2026-09-15; önceki '~10 GB hepsi' notu YANLIŞTI)
+           fan ~10.2-10.9 GB · pump ~7.7-8.2 GB · slider ~7.1-8.0 GB · valve ~6.9-8.0 GB
 
-İndirme (örnek — -6 dB):
-  mkdir -p {config.HAM_VERI}/mimii
-  cd {config.HAM_VERI}/mimii
-  wget {MIMII_ZENODO}/files/-6_dB_fan.zip
-  wget {MIMII_ZENODO}/files/-6_dB_pump.zip
-  unzip '*.zip' && rm *.zip
+İndirme (örnek — fan+pump, 6dB+0dB, ~36 GB — makine tipi kırılımı + SNR domain-shift için yeterli):
+  mkdir -p {config.HAM_VERI}/mimii/6dB {config.HAM_VERI}/mimii/0dB
+  cd {config.HAM_VERI}
+  curl -LO {MIMII_ZENODO}/files/6_dB_fan.zip
+  curl -LO {MIMII_ZENODO}/files/6_dB_pump.zip
+  curl -LO {MIMII_ZENODO}/files/0_dB_fan.zip
+  curl -LO {MIMII_ZENODO}/files/0_dB_pump.zip
+  unzip 6_dB_fan.zip 6_dB_pump.zip -d mimii/6dB && unzip 0_dB_fan.zip 0_dB_pump.zip -d mimii/0dB
+  # zip içi üst klasör doğrudan <tip>/ ise (fan/id_00/...) yukarıdaki -d hedefi doğru;
+  # farklıysa mimii/<snr>/ altına <tip>/id_NN/<durum>/*.wav gelecek şekilde taşı
 
 Beklenen düzen:
   {config.HAM_VERI}/mimii/<snr>/<tip>/id_<NN>/<normal|abnormal>/*.wav
