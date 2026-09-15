@@ -84,11 +84,10 @@ def satirlari_uret(
                 print(f"  ! okunamadı: {yol.name} ({e})")
             continue
 
-        anomali = satir["etiket"] == "anomali"
+        # NOT: sentetik_telemetri kasıtlı olarak etiketten bağımsız (bkz. dsp/telemetri.py
+        # docstring — önceki anomali-bağımlı sürüm FusionAE'de sızıntıya yol açmıştı)
         sure_sn = (pencereler.shape[0] - 1) * config.BINDIRME_SN + config.PENCERE_SN
-        tel = sentetik_telemetri(
-            sure_sn=sure_sn, seed=_dosya_seed(satir["dosya"]), anomali=anomali
-        )
+        tel = sentetik_telemetri(sure_sn=sure_sn, seed=_dosya_seed(satir["dosya"]))
         for p_idx, pencere in enumerate(pencereler):
             bas = p_idx * config.BINDIRME_SN
             oz = F.pencere_oznitelikleri(pencere, sr)

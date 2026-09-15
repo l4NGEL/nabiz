@@ -1,27 +1,27 @@
 # Split özeti
 
-Kaynak: `sentetik-disk` - 768 örnek - 8 birim
+Kaynak: `mimii` - 8410 örnek - 4 birim
 
 ### birim_ici
 
 | bolme   |   anomali |   normal |   toplam |   birim_sayisi |
 |:--------|----------:|---------:|---------:|---------------:|
-| train   |         0 |      448 |      448 |              8 |
-| val     |         0 |       62 |       62 |              8 |
-| test    |       128 |      130 |      258 |              8 |
+| train   |         0 |     5271 |     5271 |              4 |
+| val     |         0 |      692 |      692 |              4 |
+| test    |       912 |     1535 |     2447 |              4 |
 
 ### birim_disi
 
 | bolme   |   anomali |   normal |   toplam |   birim_sayisi |
 |:--------|----------:|---------:|---------:|---------------:|
-| train   |        64 |      320 |      384 |              4 |
-| val     |        32 |      160 |      192 |              2 |
-| test    |        32 |      160 |      192 |              2 |
+| train   |       490 |     4084 |     4574 |              2 |
+| val     |       200 |     1404 |     1604 |              1 |
+| test    |       222 |     2010 |     2232 |              1 |
 
 ### rejim_holdout
 
 | bolme   |   anomali |   normal |   toplam |   birim_sayisi |
 |:--------|----------:|---------:|---------:|---------------:|
-| train   |        47 |      276 |      323 |              8 |
-| val     |        17 |       44 |       61 |              8 |
-| test    |        64 |      320 |      384 |              8 |
+| train   |       393 |     3213 |     3606 |              4 |
+| val     |        63 |      536 |      599 |              4 |
+| test    |       456 |     3749 |     4205 |              4 |

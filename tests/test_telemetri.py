@@ -62,7 +62,16 @@ def test_sentetik_telemetri_deterministik_ve_sekil():
     assert a["rpm"].size == a["_zaman_sn"].size
 
 
-def test_sentetik_telemetri_anomali_daha_oynak():
-    normal = TL.sentetik_telemetri(5.0, seed=1, anomali=False)
-    ariza = TL.sentetik_telemetri(5.0, seed=1, anomali=True)
-    assert ariza["rpm"].std() > normal["rpm"].std()
+def test_sentetik_telemetri_etiket_parametresi_yok():
+    """Regresyon koruması: `anomali` parametresi kasıtlı kaldırıldı (sızıntı
+    kaynağıydı — bkz. dsp/telemetri.py docstring). Geri eklenirse bu patlar."""
+    with pytest.raises(TypeError):
+        TL.sentetik_telemetri(5.0, seed=1, anomali=True)
+
+
+def test_sentetik_telemetri_rpm_std_seedler_arasi_tutarli():
+    """Etiketten bağımsızlığın istatistiksel izi: rastgele seed'ler arasında
+    RPM std'si iki ayrı kümeye (düşük/yüksek) ayrışmamalı — önceki sızıntıda
+    anomali=True seed'leri sistemli olarak daha oynak (~3x std) çıkıyordu."""
+    stdler = [TL.sentetik_telemetri(5.0, seed=s)["rpm"].std() for s in range(30)]
+    assert max(stdler) / min(stdler) < 2.0  # doğal örnekleme varyansı, sistemli sıçrama yok

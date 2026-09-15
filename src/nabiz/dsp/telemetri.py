@@ -70,9 +70,18 @@ def sentetik_telemetri(
     rpm_nominal: float | None = None,
     hiz: float | None = None,
     seed: int = 0,
-    anomali: bool = False,
 ) -> dict[str, np.ndarray]:
     """Gerçek telemetri yokken makul sahte kanallar (Faz 1 vekil).
+
+    KASITLI OLARAK ETİKETTEN BAĞIMSIZ. Önceki sürümde bir `anomali: bool`
+    bayrağı RPM/sıcaklık gürültüsünü artırıyordu — bu, gerçek MIMII'de
+    FusionAE'nin AUC 1.000 vermesine yol açtı: sızıntı, gerçek yetenek değil
+    (2026-09-15'te fark edildi, bkz. docs/yol-haritasi.md Faz 2 notu). Bir
+    "vekil" etiketle ilişkili olamaz — gerçekte var olmayan bir sinyali var
+    gibi göstermek dürüst değil. `models/fusion.py::anomali_skoru_dallar` ile
+    telemetri dalının artık bilgi taşımadığı (skor ~sabit, sınıfa göre
+    ayrışmıyor) doğrulanabilir. Gerçek telemetri kaynağı bağlanınca
+    (docs/veri-toplama-sartnamesi.md §10 açık madde) bu fonksiyon emekli olur.
 
     Anahtar `_zaman_sn` pencere-göreli zaman damgalarını taşır.
     """
@@ -84,10 +93,8 @@ def sentetik_telemetri(
 
     rpm = rpm_nominal + rng.normal(0, 5, n) + 10 * np.sin(2 * np.pi * 0.05 * t)
     yuk = np.clip(0.6 + rng.normal(0, 0.03, n), 0.0, 1.0)
-    sicaklik = 45.0 + (t / max(t[-1], 1e-9)) * (8.0 if anomali else 3.0) + rng.normal(0, 0.2, n)
+    sicaklik = 45.0 + (t / max(t[-1], 1e-9)) * 3.0 + rng.normal(0, 0.2, n)
     gerilim = 400.0 + rng.normal(0, 1.5, n)
-    if anomali:
-        rpm += rng.normal(0, 15, n)  # arıza → daha oynak devir
 
     return {
         "rpm": rpm,
