@@ -17,7 +17,7 @@ saha testi → raporlama.
 | 2 | Değerlendirme (AUC/pAUC/ECE) + 7 model ailesi + RUL (C-MAPSS, GRU) + kalibrasyon/OOD | **büyük ölçüde tamam** (177 test); ablasyon/MLflow + gerçek MIMII/C-MAPSS sırada |
 | 3 | ONNX export + INT8 (PTQ) + gecikme ölçümü (x86 CPU) | **başladı**; TensorRT + Conv statik nicemleme + gerçek ARM sırada |
 | 4 | C++ ONNX Runtime çıkarım yolu | **başladı** (DenseAE; golden-vector parite GEÇTİ); mel-tensör modelleri + CUDA çekirdeği sırada |
-| 5 | Protobuf + MQTT/DDS + merkezi toplayıcı | planlandı |
+| 5 | Protobuf + MQTT + merkezi toplayıcı (FastAPI/SQLite) | **büyük ölçüde tamam** — gerçek uçtan uca doğrulandı; DDS/`tc netem`/canlı broker sırada |
 | 6 | Saha testi simülasyonu + rapor + dashboard | planlandı |
 
 Ayrıntı: [docs/yol-haritasi.md](docs/yol-haritasi.md)
@@ -45,7 +45,7 @@ python 02_oznitelik_cikar.py --mel       # WAV → 2 sn pencere → 168 öznitel
 python 03_model_egit.py --hizli          # 7 model ailesi → sonuclar/faz2-modeller.md
 python 04_uc_uyarla.py --hizli           # ONNX + INT8 + gecikme → sonuclar/faz3-uc.md
 python 00_veri_indir.py --cmapss-sentetik && python 05_rul_egit.py --hizli  # RUL → sonuclar/faz2-rul.md
-pytest -q                                # 180 birim testi (C++ build varsa +3)
+pytest -q                                # 206 birim testi (C++ build varsa +3 = 209)
 ```
 
 ## Faz 4 — C++ ONNX Runtime çıkarım yolu
@@ -83,6 +83,28 @@ binding'i ek yükü yok).
 
 `pytest` bu testleri (`tests/test_cpp_parity.py`) CMake build yoksa otomatik atlar.
 
+## Faz 5 — Protokol + merkezi toplayıcı
+
+```bash
+pip install -e ".[protokol]"   # fastapi, uvicorn, httpx, paho-mqtt, grpcio-tools
+
+# Toplayıcıyı başlat (ayrı terminal)
+uvicorn nabiz.serving.toplayici:app --app-dir src --port 8700
+
+# Demo: sentetik tespit üret, MQTT'ye yayınla (broker yoksa tamponlanır — RB-03),
+# toplayıcıya HTTP ile gönder
+python 07_protokol_demo.py
+```
+
+Bu makinede Docker çalışmadığı için MQTT broker'sız denendi: 12/12 mesaj beklendiği
+gibi yerel tampona düştü. Toplayıcı ayrıca başlatılıp gerçek HTTP ile test edildi:
+**12/12 tespit alındı**, `/istatistik` 3 makine için doğru ortalama/maks skor
+döndürdü. Canlı MQTT (broker + backfill) için: `docker compose up`, sonra
+`docker compose stop mosquitto` ile RB-03'ü canlı gözlemle (bkz. `docker-compose.yml`
+başlığı).
+
+Mesaj şeması: [src/nabiz/protocol/mesaj.proto](src/nabiz/protocol/mesaj.proto)
+
 ## Gerçek veri
 
 MIMII (akustik endüstriyel makine — DCASE Task 2 tabanı), CWRU / Paderborn rulman
@@ -107,6 +129,7 @@ docs/                şartname, gereksinimler, test planı, yol haritası
 data/                ham + işlenmiş veri (git dışı)
 modeller/ deneyler/  eğitim çıktıları (git dışı) — modeller/edge/*.onnx dahil
 sonuclar/            split özeti, parmak izi, saha test raporu (versiyonlu)
+docker-compose.yml   mosquitto (MQTT) + toplayıcı — Faz 5 canlı doğrulama
 ```
 
 ## Test katmanları

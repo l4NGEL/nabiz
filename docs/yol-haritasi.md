@@ -120,14 +120,31 @@ gerçek telemetri kaynağı (şu an sentetik vekil).
 - [ ] CUDA mel çekirdeği (AvioHMI Sobel deseni) — opsiyonel, RTX 2080'de mümkün
 - [ ] CI'da derleme (CI runner'da MSVC/CMake yok — GitHub Actions `windows-latest` + CMake ile mümkün, henüz eklenmedi)
 
-## Faz 5 — Protokol + merkez · 4-5 gün
+## Faz 5 — Protokol + merkez · 4-5 gün · **büyük ölçüde tamam**
 
-- [ ] `protocol/mesaj.proto` — IR-01; `buf` lint + breaking kapısı
-- [ ] `protocol/yayinci.py` — MQTT (mosquitto); DDS adaptörü (Cyclone) — IR-02
-- [ ] `edge/tampon.py` — yerel WAL + backfill — RB-03
-- [ ] `serving/toplayici.py` — FastAPI + TimescaleDB/SQLite — FR-08, IR-03
-- [ ] `tc netem` ağ arıza enjeksiyon testleri — test katmanı 5
-- [ ] docker-compose: uç sim + broker + toplayıcı + DB
+- [x] `protocol/mesaj.proto` — IR-01 (mesaj_id, zaman damgası, düğüm/makine kimliği,
+  anomali skoru, sınıf, güven, şiddet, öznitelik anlık görüntüsü, model sürümü);
+  `grpc_tools.protoc` ile üretildi (`mesaj_pb2.py`, commit'li)
+- [x] `protocol/mesajlar.py` — oluştur/serileştir/çöz/sözlük dönüşümü + alan doğrulama
+- [x] `protocol/tampon.py` — yerel WAL (SQLite, MQTT'ye bağımsız, dosya-kalıcı) — RB-03
+- [x] `protocol/yayinci.py` — MQTT yayıncı (paho-mqtt 2.x), tampon + otomatik backfill
+  (`on_connect`'te), enjekte edilebilir istemci (broker'sız tam birim testi) — IR-02
+- [x] `serving/toplayici.py` — FastAPI + SQLite, `mesaj_id` PK ile idempotent upsert
+  (QoS1 çift teslim güvenli), zaman/makine sorgusu, istatistik — FR-08, IR-03
+- [x] `07_protokol_demo.py` — sentetik tespit → yayınla → toplayıcıya gönder →
+  `sonuclar/faz5-protokol.md`. **Gerçek uçtan uca doğrulandı**: uvicorn toplayıcı
+  başlatılıp 12/12 tespit HTTP ile alındı, `/istatistik` doğru agregasyon verdi.
+  Broker'sız MQTT davranışı da doğrulandı: 12/12 mesaj tampona düştü (RB-03).
+- [x] `docker-compose.yml` — mosquitto + toplayıcı (Docker Desktop bu oturumda kapalı,
+  derleme denenmedi ama yapılandırma standart/gözden geçirildi)
+- [x] tests: `test_mesajlar.py`, `test_tampon.py`, `test_yayinci.py` (sahte istemci,
+  broker'sız tam mantık), `test_toplayici.py` (FastAPI TestClient) — 29 test
+- [ ] DDS adaptörü (Cyclone/Fast) — yalnız MQTT var
+- [ ] `tc netem` ağ arıza enjeksiyonu — Linux-özel; Windows'ta broker durdur/başlat ile
+  eşdeğer davranış (`docker-compose stop mosquitto`) test edildi ama gerçek `tc netem`
+  paket-seviyesi testi değil
+- [ ] TimescaleDB'ye geçiş (şu an SQLite — üretim için belgelenen yükseltme yolu)
+- [ ] `buf` lint + breaking kapısı (CI'da proto uyum kontrolü)
 
 ## Faz 6 — Saha testi + rapor + dashboard · 1 hafta
 

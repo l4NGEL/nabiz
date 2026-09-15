@@ -17,7 +17,7 @@ jobs:
           cache: pip
 
       - name: Bağımlılıklar
-        run: pip install -e ".[dev]"
+        run: pip install -e ".[dev,protokol]"
 
       - name: Lint (ruff)
         run: ruff check .

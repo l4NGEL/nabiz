@@ -1,0 +1,24 @@
+// NABIZ tespit mesajı — uç düğümden merkezi platforma (IR-01).
+//
+// Sürümleme: alan numaraları asla değiştirilmez/tekrar kullanılmaz — yalnız
+// yeni alan eklenir (geriye uyumluluk, eski tüketici yeni mesajı okuyabilir).
+// Kod üretimi:
+//   python -m grpc_tools.protoc -I=src/nabiz/protocol --python_out=src/nabiz/protocol
+//       --pyi_out=src/nabiz/protocol src/nabiz/protocol/mesaj.proto
+syntax = "proto3";
+
+package nabiz;
+
+message Tespit {
+  string mesaj_id = 1;                       // UUID4 — idempotency (RB-03: QoS1 çift teslim)
+  int64 zaman_damgasi_ms = 2;                 // Unix epoch, milisaniye
+  string dugum_id = 3;                        // uç düğüm kimliği (ör. "uc-05")
+  string makine_id = 4;                       // izlenen teçhizat kimliği (ör. "fan/id_02")
+  float anomali_skoru = 5;                    // yeniden yapılandırma hatası / mesafe (ham)
+  string sinif = 6;                           // "normal" | "anomali" | arıza tipi
+  float guven = 7;                            // [0,1] kalibre olasılık (eval/kalibrasyon.py)
+  string siddet = 8;                          // "yok" | "baslangic" | "orta" | "ileri"
+  repeated float oznitelik_anlik_goruntu = 9; // ham öznitelik vektörü (izlenebilirlik/hata ayıklama)
+  string model_surumu = 10;                   // ör. "dense_ae-int8-2026.09.14"
+  string kaynak_split = 11;                   // opsiyonel: değerlendirme bağlamı (rejim/strateji)
+}

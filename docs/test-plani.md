@@ -85,17 +85,25 @@ Kod: `bench/` · `tests/test_runtime_parite.py`
 
 ## 5. Protokol / entegrasyon testleri — Faz 5
 
-- Şema round-trip: tespit → Protobuf → geri; şema evrimi (eski tüketici yeni mesaj).
-- MQTT/DDS: uç → broker → merkez; mesaj sayısı, sıra, bozulma yok.
-- **Ağ arıza enjeksiyonu** (`tc netem`): broker başta kapalı (tampon + retry), akış
-  ortasında düşer (reconnect + backfill), yüksek gecikme, %kayıp, QoS 1 çift
-  teslimat → tüketici idempotent (RB-03).
-- Backpressure: merkez yavaş → uç tamponu dolar → zarif bozulma, çökme değil.
-- Merkezi toplayıcı: 10k msg/s ingest kayıpsız; zaman-aralığı sorgusu doğru.
-- **Uçtan uca**: sensör sim'ine enjekte anomali → dashboard'da N sn içinde doğru
-  makine kimliği + şiddet.
+- [x] Şema round-trip: tespit → Protobuf → geri (`test_mesajlar.py`).
+- [x] Yerel tampon/backfill mantığı: broker başta kapalı (tampon'a yazar), `on_connect`
+  tetiklenince backfill (`test_yayinci.py` — enjekte sahte istemci, broker'sız).
+  **Gerçek broker'la da doğrulandı** (bu oturumda): broker yokken 12/12 mesaj
+  tampona düştü — beklenen RB-03 davranışı, `07_protokol_demo.py` çıktısı.
+- [x] Merkezi toplayıcı: idempotent upsert (`mesaj_id` PK, QoS1 çift teslim güvenli),
+  zaman-aralığı/makine sorgusu, istatistik agregasyonu (`test_toplayici.py`).
+  **Gerçek uçtan uca**: uvicorn başlatıldı, 12/12 tespit HTTP ile alındı,
+  `/istatistik` 3 makine için doğru ort/maks skor + adet döndü.
+- [ ] MQTT/DDS canlı broker üzerinden: mosquitto/Docker bu oturumda çalışmadı
+  (Docker Desktop kapalı) — `docker-compose.yml` hazır, `docker compose up` ile
+  denenmedi. DDS adaptörü yok.
+- [ ] **Ağ arıza enjeksiyonu** (`tc netem`): Linux-özel, bu Windows makinede
+  doğrudan yapılamadı. Eşdeğeri (broker durdur/başlat) tasarımda var, canlı
+  denenmedi. Yüksek gecikme/%kayıp/QoS1 çift teslim senaryoları açık.
+- [ ] Backpressure (merkez yavaş → uç tamponu dolar), 10k msg/s ingest — açık.
+- [ ] **Uçtan uca dashboard**: Faz 6, henüz yok.
 
-Kod: `tests/test_protokol.py`, `tests/test_toplayici.py`
+Kod: `tests/test_mesajlar.py`, `tests/test_tampon.py`, `tests/test_yayinci.py`, `tests/test_toplayici.py`
 
 ## 6. CI / regresyon kapıları — sürekli
 
@@ -142,6 +150,6 @@ test senaryosu → geç/kal kriteri → sonuç.
 | 2 Model kalite | 2 | **aktif** — `test_metrics.py` + `test_baseline.py` + `test_autoencoder.py` + `test_mel_modelleri.py` + `test_fusion.py` + `test_oznitelik.py` + `test_mel_loader.py` + `test_cmapss.py` + `test_rul_model.py` + `test_kalibrasyon.py` + `test_ood.py` (~102 test); kalibrasyon (Platt/ECE) + OOD (gürültü/karıştırma AUC) `03_model_egit.py`'ye entegre; gerçek MIMII/C-MAPSS AUC/MAE hedefi kalan tek açık madde |
 | 3 Domain shift | 2 | **kısmi** — `03_model_egit.py` domain-shift Δ tablosu (birim_disi vs rejim_holdout); MIMII DUE + görülmemiş arıza tipi testleri sırada |
 | 4 Uç/donanım | 3-4 | **aktif** — `test_onnx_disa.py` + `test_nicemleme.py` + `test_bench.py` + `test_cpp_parity.py` (20 test); x86 CPU'da gerçek ölçüm (`sonuclar/faz3-uc.md`), C++ golden-vector paritesi geçti (FP32 tam, INT8 gevşek); TensorRT/gerçek ARM/soak sırada |
-| 5 Protokol | 5 | planlandı |
+| 5 Protokol | 5 | **büyük ölçüde tamam** — `test_mesajlar.py` + `test_tampon.py` + `test_yayinci.py` + `test_toplayici.py` (29 test); gerçek uçtan uca (HTTP toplayıcı) bu oturumda doğrulandı; canlı MQTT broker/DDS/`tc netem` sırada |
 | 6 CI kapıları | sürekli | **kısmi** — Faz 0 kapıları |
 | 7 Saha kabul | 6 | planlandı |

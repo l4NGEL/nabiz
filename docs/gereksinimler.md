@@ -70,16 +70,19 @@ Doğrulama yöntemi kodları: **T** test (otomatik), **A** analiz/ölçüm, **D*
 | FR-04 | `models/cnn.py` (Faz 2) | `test_model_kalite.py::test_siniflandirma_f1` | planlandı |
 | FR-05 | `models/rul.py` (RULRegresor) + `data/cmapss.py` (gerçek+sentetik, resmi protokol); `05_rul_egit.py` | `test_cmapss.py`, `test_rul_model.py` (25 test) | **kısmi** — GRU baseline'ı (train-ortalaması) sentetikte açık farkla geçiyor (MAE 9.9 vs 76.1); gerçek C-MAPSS ile literatür karşılaştırması açık |
 | FR-06 | `edge/onnx_disa.py` (export+parite) + `edge/nicemleme.py` (INT8); `04_uc_uyarla.py`; **`cpp/src/nabiz_cikarim.cpp`** (C++ ONNX Runtime çıkarımı, DenseAE) | `test_onnx_disa.py`, `test_nicemleme.py` (13 test) + `tests/test_cpp_parity.py` (3 test, build varsa) | **kısmi** — ONNX Runtime CPU (Python+C++) tam, golden-vector paritesi geçti; TensorRT/gerçek ARM/mel-tensör C++ desteği açık madde |
-| FR-07 | `protocol/mesaj.proto`, `protocol/yayinci.py` (Faz 5) | `test_protokol.py::test_round_trip` | planlandı |
-| FR-08 | `serving/toplayici.py` (Faz 5) | `test_toplayici.py` | planlandı |
+| FR-07 | `protocol/mesaj.proto` + `mesajlar.py` (oluştur/serileştir) + `yayinci.py` (MQTT publish + tampon) | `test_mesajlar.py` (7), `test_yayinci.py` (7) | **karşılandı** — DDS adaptörü hariç (yalnız MQTT) |
+| FR-08 | `serving/toplayici.py` — FastAPI + SQLite, idempotent upsert, zaman/makine sorgusu | `test_toplayici.py` (9) | **karşılandı** — gerçek uçtan uca doğrulandı (12/12 HTTP ile alındı, `07_protokol_demo.py`) |
 | FR-09 | `serving/dashboard/` (Faz 6) | uçtan uca senaryo | planlandı |
+| IR-01 | `protocol/mesaj.proto` (11 alan) → `mesaj_pb2.py` (`grpc_tools.protoc`) | `test_mesajlar.py::test_serilestir_coz_roundtrip` | **kısmi** — şema + roundtrip tam; `buf breaking` CI kapısı yok |
+| IR-02 | `protocol/yayinci.py` — `_MQTTIstemcisi` Protocol arayüzü (paho-mqtt somutlaştırması) | `test_yayinci.py` (7 test, enjekte sahte istemci) | **kısmi** — MQTT tam; DDS adaptörü yok |
+| IR-03 | `serving/toplayici.py` — SQLite şema (`tespitler` tablosu, PK+indeks); sorgu arayüzü DB'den bağımsız tasarlandı | `test_toplayici.py` (9 test) | **kısmi** — SQLite'ta tam; TimescaleDB'ye geçiş + migration açık madde |
 | PR-01 | `eval/metrics.py::yanlis_alarm_saat`; `03_model_egit.py` raporu | `test_metrics.py::test_yanlis_alarm_saat` | **kısmi** — ölçüm var, hedef (≤1/24s) MIMII ile |
 | PR-03 | `eval/metrics.py::pauc` (DCASE `max_fpr`) + baseline karşılaştırması | `test_metrics.py::test_pauc_*` | **kısmi** — pAUC hesabı + baseline var, hedef MIMII ile |
 | PR-02 | `edge/bench.py::gecikme_olc`; `04_uc_uyarla.py` raporu (x86 vekili) | `test_bench.py` | **kısmi** — x86 ölçümü var (P95 dense_ae 0.16 ms, conv_ae 1.6 ms sentetikte), gerçek ARM açık madde |
 | PR-04, PR-05 | `04_uc_uyarla.py` (model boyutu); verim ölçümü açık | — | **kısmi** — boyut ölçülüyor (dense_ae INT8 0.07 MB), verim/RAM açık madde |
 | RB-01 | `data/splits.py::rejim_holdout_split` + `03_model_egit.py` domain-shift Δ tablosu | `test_splits.py::test_rejim_holdout_*` | **kısmi** — split + rapor var, MIMII DUE Faz 2 sonu |
 | RB-02 | `eval/gorulmemiş_ariza.py` (Faz 2) | `test_model_kalite.py::test_gorulmemis_ariza` | planlandı |
-| RB-03 | `edge/tampon.py` (Faz 5) | `test_protokol.py::test_ag_kesintisi` | planlandı |
+| RB-03 | `protocol/tampon.py` (yerel WAL, dosya-kalıcı) + `yayinci.py` (otomatik backfill) | `test_tampon.py` (6), `test_yayinci.py::test_baglanma_tetikler_backfill` | **kısmi karşılandı** — mantık tam test edilmiş (sahte istemci); gerçek broker'lı 10-dk kesinti senaryosu / `tc netem` paket-seviyesi test edilmedi |
 | RB-04 | `edge/nicemleme.py::int8_nicemle` (MatMul/Gemm dinamik PTQ) + `edge/onnx_disa.py::skor_paritesi` | `test_nicemleme.py::test_int8_skor_paritesi_yuksek` | **kısmi** — dense_ae'de tam karşılandı (korr 1.0000, ΔAUC 0.000 sentetikte); ConvAE'de Conv katmanları nicemlenmiyor (bkz. yol-haritası) |
 | RB-05 | `dsp/dogrulama.py` (`sonlu_1b`, `pozitif`) — tüm DSP modülleri | `test_dsp.py::test_nan_girdi_hata`, `test_hizalama.py::test_kanal_nan_reddedilir`, `test_titresim.py::test_bant_gecir_gecersiz_bant` vb. | **karşılandı** |
 | QR-01 | `.dvc/`, `data/splits.py::manifest_parmak_izi` | `test_splits.py::test_manifest_parmak_izi_kararli` | **karşılandı** |
