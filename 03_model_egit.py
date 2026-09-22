@@ -245,11 +245,22 @@ def strateji_calistir(strateji: str, hizli: bool) -> tuple[pd.DataFrame, dict | 
     return df, kalib_ood
 
 
+def _gercek_mimii_mi() -> bool:
+    kok = config.HAM_VERI / "mimii"
+    return kok.exists() and any(kok.rglob("*.wav"))
+
+
 def rapor_yaz(tablolar: list[pd.DataFrame], hizli: bool, kalib_ood_listesi: list[dict]) -> Path:
     config.SONUC_DIZINI.mkdir(parents=True, exist_ok=True)
     yol = config.SONUC_DIZINI / "faz2-modeller.md"
     goster = ["strateji", "model", "AUC", "AUC_CI", "pAUC", "F1", "precision", "recall", "FPR", "yanlış_alarm/sa", "sn"]
     mel_var = (config.ISLENMIS_VERI / "mel.npz").exists()
+    veri_notu = (
+        "- veri: GERÇEK MIMII (Zenodo 3384388) — sayılar savunulabilir, portföy değeri var"
+        if _gercek_mimii_mi()
+        else "- NOT: sentetik veri — sayılar boru hattı doğrulaması içindir, "
+        "portföy değeri için MIMII gerekir"
+    )
     parcalar = [
         "# Faz 2 — model karşılaştırması\n",
         "- öznitelik yolu: a_ + z_ + t_  ·  mel yolu: log-mel tensör "
@@ -257,8 +268,7 @@ def rapor_yaz(tablolar: list[pd.DataFrame], hizli: bool, kalib_ood_listesi: list
         f"- torch: {'var' if TORCH_VAR else 'YOK — yalnız baseline'}"
         f"{'  (hızlı mod)' if hizli and TORCH_VAR else ''}",
         "- gözetimsiz (yalnız normal eğitim); eşik validasyondan F1 ile",
-        "- NOT: sentetik veri — sayılar boru hattı doğrulaması içindir, "
-        "portföy değeri için MIMII gerekir\n",
+        f"{veri_notu}\n",
     ]
     tum = pd.concat(tablolar, ignore_index=True)
     parcalar.append(tum[goster].round(3).to_markdown(index=False))

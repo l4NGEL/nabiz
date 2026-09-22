@@ -1,8 +1,8 @@
 {
   "kaynak": "mimii",
   "parmak_izleri": {
-    "birim_ici": "577ccaba9b7fbedf1bbe846a819aa4509a04efa8e7f4c6bc4424935a3fcd582a",
-    "birim_disi": "533c05dcc784942ffbdee8cb39fb379d9aaea12551d40711fc93fda73cc012fc",
-    "rejim_holdout": "d722d5e46f8116165691ee93103ede6034e70975a72d741947e9dce75df83647"
+    "birim_ici": "1c75f105f97468568fa00ed7d22629e551d6cea76ccd59d7363b1eeff1d8381d",
+    "birim_disi": "f34ca92d3ca45db935b344de3072ab6a0462d74ac13246010b03e0630b6bedeb",
+    "rejim_holdout": "5f7ea71e14bfc1ded69464d8c6836e0beef6975aef1fa115aabbfbd9001f3d71"
   }
 }
