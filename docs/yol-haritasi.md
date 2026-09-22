@@ -79,8 +79,18 @@ gerçek telemetri kaynağı (şu an sentetik vekil).
   İYİLEŞMEDİ [ECE 0.060→0.094] — val kaynak domaininden, test hedeften; dürüstçe raporlandı)
 - [ ] Ablasyon (a_/z_/t_ grupları) + 3-5 seed
 - [ ] MLflow deney takibi
-- [ ] Domain-shift (MIMII DUE), görülmemiş arıza tipi, çapraz-veri — test katmanı 3
-- [ ] **Gerçek MIMII ile yeniden çalıştır** — sentetikte modeller doygun (AUC≈1)
+- [x] **Gerçek MIMII ile yeniden çalıştır** (2026-09-21/22) — fan+pump, 6dB+0dB, 19.510
+  dosya, 175.590 pencere, TAM mod, iki strateji → `sonuclar/faz2-modeller.md`. **Ana bulgu:**
+  birim_disi (görülmemiş ünite) rejim_holdout'tan (görülmemiş SNR) sistematik daha zor
+  (her modelde +Δ, dense_ae +0.29/mahalanobis +0.26 puan), bazı modeller birim_disi'de
+  rastgeleden kötü — epok-bağımsız (hızlı=8 vs tam=120 epok aynı), gerçek cross-machine
+  genelleme zorluğu (DCASE "unseen machine ID" ile tutarlı), eğitim eksikliği DEĞİL.
+  Tip-içi rejim_holdout AUC 0.80-0.86 (mahalanobis/dense_ae) — havuzlanmış 0.66'dan
+  çok daha güçlü (iki tip farklı skor ölçeğinde). Yol boyunca kritik bir sentetik-telemetri
+  etiket sızıntısı bulunup düzeltildi (commit 775e6ad) — FusionAE'nin sahte AUC 1.000'i.
+- [x] Domain-shift (birim_disi vs rejim_holdout, gerçek MIMII) — yukarıdaki madde kapsıyor;
+  MIMII DUE'nin resmi kaynak/hedef domain ayrımı henüz kullanılmadı (kendi SNR-holdout'umuz var)
+- [ ] Görülmemiş arıza tipi, çapraz-veri (CWRU→Paderborn) — test katmanı 3, hâlâ açık
 
 ## Faz 3 — Uç uyarlama + optimizasyon · 1 hafta · **başladı**
 
