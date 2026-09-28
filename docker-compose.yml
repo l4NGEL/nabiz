@@ -30,5 +30,22 @@ services:
     volumes:
       - nabiz-data:/app/data
 
+  # C-MAPSS SQL veri hattı (09_rul_sql.py, serving/rul_api.py). YALNIZ yerel
+  # geliştirme: şifre sabit bir test değeridir, gerçek ortamda kullanılmaz.
+  # Yereldeki olası PostgreSQL ile çakışmasın diye 55432.
+  #   docker compose up -d postgres
+  #   set NABIZ_PG_DSN=postgresql://nabiz:nabiz_yerel@localhost:55432/nabiz
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: nabiz
+      POSTGRES_PASSWORD: nabiz_yerel
+      POSTGRES_DB: nabiz
+    ports:
+      - "55432:5432"
+    volumes:
+      - nabiz-pg:/var/lib/postgresql/data
+
 volumes:
   nabiz-data:
+  nabiz-pg:

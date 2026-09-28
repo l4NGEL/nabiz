@@ -155,9 +155,14 @@ def main() -> int:
                 f"n={len(yte_kaydir)} · MAE {m_kaydir['MAE']:.2f} · RMSE {m_kaydir['RMSE']:.2f} · "
                 f"C-MAPSS skoru {m_kaydir['cmapss_skoru']:.1f} "
                 "(örtüşen pencereler nedeniyle skor resmi protokolden daha büyük görünür — beklenen)\n",
-                "NOT: sentetik veride sonuçlar boru hattı doğrulaması içindir; "
-                "gerçek C-MAPSS (python 00_veri_indir.py --cmapss-bilgi) ile literatürle "
-                "karşılaştırılabilir.",
+                (
+                    "NOT: gerçek C-MAPSS, resmi test dosyası + RUL etiketleri (test RUL'u 125'te "
+                    "kırpılı). SQL öznitelikli model ile karşılaştırma: `sonuclar/faz2-rul-sql.md`."
+                    if kaynak.startswith("gercek") and test_df is not None
+                    else "NOT: sentetik veride sonuçlar boru hattı doğrulaması içindir; "
+                    "gerçek C-MAPSS (python 00_veri_indir.py --cmapss-bilgi) ile literatürle "
+                    "karşılaştırılabilir."
+                ),
             ]
         ),
         encoding="utf-8",
