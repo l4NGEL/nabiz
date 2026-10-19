@@ -60,6 +60,20 @@ def test_yukle_parquet_yoksa(tmp_path):
         OZ.yukle("birim_disi", parquet=tmp_path / "yok.parquet")
 
 
+def test_grup_indeksleri(parquet):
+    v = OZ.yukle("birim_disi", parquet=parquet)
+    idx = OZ.grup_indeksleri(v.oznitelik_adlari, ("t",))
+    assert idx == [v.oznitelik_adlari.index("t_rpm_ort")]
+    assert len(OZ.grup_indeksleri(v.oznitelik_adlari, ("a", "z"))) == 7
+
+
+def test_meta_train_val_hizali(parquet):
+    v = OZ.yukle("birim_disi", parquet=parquet)
+    assert len(v.meta_train) == v.X_train.shape[0]
+    assert len(v.meta_val) == v.X_val.shape[0]
+    assert "makine_birimi" in v.meta_train.columns
+
+
 def test_kirilim_erisimi(parquet):
     v = OZ.yukle("birim_disi", parquet=parquet)
     tipler = v.kirilim("makine_tipi")

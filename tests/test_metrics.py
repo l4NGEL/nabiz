@@ -49,6 +49,20 @@ def test_esik_sec_fpr_hedefli():
     assert abs(m["fpr"] - 0.05) < 0.04
 
 
+def test_fpr_butcesi_pr01_ve_tam_alarm():
+    # her pencere alarm → FPR 1; 2 sn pencerede saatte 1800 pencere
+    assert MT.fpr_butcesi(1800, 2.0) == pytest.approx(1.0)
+    # PR-01: 1 alarm / 24 saat
+    assert MT.fpr_butcesi(MT.PR01_ALARM_SAAT, 2.0) == pytest.approx(1.0 / 43_200)
+
+
+def test_fpr_butcesi_gecersiz():
+    with pytest.raises(ValueError):
+        MT.fpr_butcesi(-1, 2.0)
+    with pytest.raises(ValueError):
+        MT.fpr_butcesi(1, 0)
+
+
 def test_yanlis_alarm_saat():
     y = np.array([0, 0, 0, 0, 1])
     s = np.array([0.9, 0.9, 0.1, 0.1, 0.9])  # 2 normal pencere yanlış pozitif

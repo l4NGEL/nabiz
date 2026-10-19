@@ -18,9 +18,11 @@ import sqlite3
 import time
 
 from fastapi import FastAPI, HTTPException
+from fastapi.responses import HTMLResponse
 from pydantic import BaseModel, Field
 
 from nabiz import config
+from nabiz.serving.panel import PANEL_HTML
 
 
 class TespitGovde(BaseModel):
@@ -35,6 +37,7 @@ class TespitGovde(BaseModel):
     oznitelik_anlik_goruntu: list[float] = Field(default_factory=list)
     model_surumu: str = ""
     kaynak_split: str = ""
+    kayit_adi: str = ""
 
 
 _SEMA = """
@@ -43,7 +46,7 @@ CREATE TABLE IF NOT EXISTS tespitler (
     zaman_damgasi_ms INTEGER NOT NULL,
     dugum_id TEXT, makine_id TEXT,
     anomali_skoru REAL, sinif TEXT, guven REAL, siddet TEXT,
-    oznitelik_json TEXT, model_surumu TEXT, kaynak_split TEXT,
+    oznitelik_json TEXT,     model_surumu TEXT, kaynak_split TEXT, kayit_adi TEXT,
     alinma_zamani REAL NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_zaman ON tespitler(zaman_damgasi_ms);
@@ -55,6 +58,9 @@ def _db_kur(yol: str) -> sqlite3.Connection:
     db = sqlite3.connect(yol, check_same_thread=False)
     db.row_factory = sqlite3.Row
     db.executescript(_SEMA)
+    sutunlar = {r[1] for r in db.execute("PRAGMA table_info(tespitler)")}
+    if "kayit_adi" not in sutunlar:
+        db.execute("ALTER TABLE tespitler ADD COLUMN kayit_adi TEXT")
     db.commit()
     return db
 
@@ -72,13 +78,14 @@ def uygulama_olustur(db_yolu: str = ":memory:") -> FastAPI:
         db.execute(
             """INSERT OR IGNORE INTO tespitler
                (mesaj_id, zaman_damgasi_ms, dugum_id, makine_id, anomali_skoru,
-                sinif, guven, siddet, oznitelik_json, model_surumu, kaynak_split, alinma_zamani)
-               VALUES (?,?,?,?,?,?,?,?,?,?,?,?)""",
+                sinif, guven, siddet, oznitelik_json, model_surumu, kaynak_split,
+                kayit_adi, alinma_zamani)
+               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)""",
             (
                 govde.mesaj_id, govde.zaman_damgasi_ms, govde.dugum_id, govde.makine_id,
                 govde.anomali_skoru, govde.sinif, govde.guven, govde.siddet,
                 json.dumps(govde.oznitelik_anlik_goruntu), govde.model_surumu,
-                govde.kaynak_split, time.time(),
+                govde.kaynak_split, govde.kayit_adi, time.time(),
             ),
         )
         db.commit()
@@ -110,7 +117,7 @@ def uygulama_olustur(db_yolu: str = ":memory:") -> FastAPI:
             degerler.append(bitis_ms)
         nerede = f"WHERE {' AND '.join(kosullar)}" if kosullar else ""
         sorgu = f"SELECT * FROM tespitler {nerede} ORDER BY zaman_damgasi_ms DESC LIMIT ?"
-        satirlar = db.execute(sorgu, (*degerler, max(1, min(limit, 1000)))).fetchall()
+        satirlar = db.execute(sorgu, (*degerler, max(1, min(limit, 20000)))).fetchall()
         return [dict(s) for s in satirlar]
 
     @app.get("/istatistik")
@@ -119,11 +126,16 @@ def uygulama_olustur(db_yolu: str = ":memory:") -> FastAPI:
             dict(s)
             for s in db.execute(
                 """SELECT makine_id, COUNT(*) AS adet,
+                          SUM(CASE WHEN sinif = 'anomali' THEN 1 ELSE 0 END) AS alarm,
                           AVG(anomali_skoru) AS ort_skor, MAX(anomali_skoru) AS maks_skor,
                           MAX(zaman_damgasi_ms) AS son_zaman_ms
                    FROM tespitler GROUP BY makine_id ORDER BY maks_skor DESC"""
             ).fetchall()
         ]
+
+    @app.get("/", response_class=HTMLResponse)
+    def panel() -> HTMLResponse:
+        return HTMLResponse(PANEL_HTML)
 
     @app.get("/saglik")
     def saglik() -> dict:

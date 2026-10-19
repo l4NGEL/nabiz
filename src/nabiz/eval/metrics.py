@@ -80,6 +80,21 @@ def esikte_metrikler(y, skor, esik: float) -> dict[str, float]:
     }
 
 
+def fpr_butcesi(alarm_saat_basi: float, pencere_sn: float) -> float:
+    """Hedef yanlış alarm/saat → pencere başına FPR.
+
+    Saatlik alarm = FPR × (3600 / pencere_sn). PR-01 (≤ 1 alarm / 24 saat,
+    2 sn pencere) ≈ 2.3e-5 FPR.
+    """
+    if alarm_saat_basi < 0 or pencere_sn <= 0:
+        raise ValueError("alarm_saat_basi ≥ 0 ve pencere_sn > 0 olmalı")
+    return float(alarm_saat_basi * pencere_sn / 3600.0)
+
+
+# PR-01: nominal çalışmada ≤ 1 yanlış alarm / 24 saat
+PR01_ALARM_SAAT = 1.0 / 24.0
+
+
 def yanlis_alarm_saat(y, skor, esik: float, toplam_saat: float) -> float:
     """Normal pencerelerde pozitif işaret sayısı / saat (PR-01 vekili)."""
     y, s = _ikili(y, skor)

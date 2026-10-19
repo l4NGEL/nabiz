@@ -4,9 +4,8 @@
 Uç düğümde C++/CUDA çıkarım, tespitleri gerçek protokolle merkezi kayıt/izleme
 platformuna akıtan uçtan uca sistem, savunma üslubu gereksinim takibi + saha test raporu.
 
-Portföy projesi — ASELSAN UGES "Yapay Zeka (ve Algoritma) Geliştirme Mühendisi"
-ilan profiline göre kurgulandı: sensör verisi → YZ modeli → uç/merkez dağıtım →
-saha testi → raporlama.
+Portföy projesi; kapsamı uçtan uca bir YZ ürün hattı: sensör verisi → YZ modeli →
+uç/merkez dağıtım → saha testi → raporlama.
 
 ## Durum
 
@@ -14,7 +13,7 @@ saha testi → raporlama.
 |-----|--------|-------|
 | 0 | Kapsam + veri şartnamesi + split doğrulama + CI | **tamam** (kalan: DVC remote + gerçek MIMII) |
 | 1 | DSP önyüz — hizalama, order/envelope, telemetri, öznitelik hattı | **tamam** (68 test) |
-| 2 | Değerlendirme (AUC/pAUC/ECE) + 7 model ailesi + RUL (C-MAPSS, GRU) + kalibrasyon/OOD | **büyük ölçüde tamam** (177 test); ablasyon/MLflow + gerçek MIMII/C-MAPSS sırada |
+| 2 | Değerlendirme (AUC/pAUC/ECE) + 7 model ailesi + RUL (C-MAPSS, GRU) + kalibrasyon/OOD | **büyük ölçüde tamam**. Gerçek MIMII: ürün skoru tip başına PCA artığı. Dosya alarmı her iki testte PR-01'i tutuyor (0 yanlış olay; recall 0.65 görülmemiş ünite, 0.79 SNR kayması). pAUC ve MLflow + gerçek C-MAPSS sırada |
 | 3 | ONNX export + INT8 (PTQ) + gecikme ölçümü (x86 CPU) | **başladı**; TensorRT + Conv statik nicemleme + gerçek ARM sırada |
 | 4 | C++ ONNX Runtime çıkarım yolu | **başladı** (DenseAE; golden-vector parite GEÇTİ); mel-tensör modelleri + CUDA çekirdeği sırada |
 | 5 | Protobuf + MQTT + merkezi toplayıcı (FastAPI/SQLite) | **büyük ölçüde tamam** — gerçek uçtan uca doğrulandı; DDS/`tc netem`/canlı broker sırada |
@@ -43,9 +42,10 @@ python 00_veri_indir.py --sentetik      # data/ham/sentetik/ altına küçük WA
 python 01_split_dogrula.py               # manifest + 3 split + sızıntı kontrolü + parmak izi
 python 02_oznitelik_cikar.py --mel       # WAV → 2 sn pencere → 168 öznitelik + log-mel tensör
 python 03_model_egit.py --hizli          # 7 model ailesi → sonuclar/faz2-modeller.md
+python 08_urun_degerlendir.py            # tip + ünite uyarlaması + ablasyon → sonuclar/faz2-urun.md
 python 04_uc_uyarla.py --hizli           # ONNX + INT8 + gecikme → sonuclar/faz3-uc.md
 python 00_veri_indir.py --cmapss-sentetik && python 05_rul_egit.py --hizli  # RUL → sonuclar/faz2-rul.md
-pytest -q                                # 206 birim testi (C++ build varsa +3 = 209)
+pytest -q                                # 256 test (C++ build yoksa parite testleri atlanır)
 ```
 
 ## Faz 4 — C++ ONNX Runtime çıkarım yolu
@@ -88,8 +88,8 @@ binding'i ek yükü yok).
 ```bash
 pip install -e ".[protokol]"   # fastapi, uvicorn, httpx, paho-mqtt, grpcio-tools
 
-# Toplayıcıyı başlat (ayrı terminal)
-uvicorn nabiz.serving.toplayici:app --app-dir src --port 8700
+# Toplayıcı + ürün alarmlarının oynatılması — panel: http://127.0.0.1:8701/
+python 09_canli_oynat.py
 
 # Demo: sentetik tespit üret, MQTT'ye yayınla (broker yoksa tamponlanır — RB-03),
 # toplayıcıya HTTP ile gönder

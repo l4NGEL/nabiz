@@ -77,7 +77,14 @@ gerçek telemetri kaynağı (şu an sentetik vekil).
   ve OOD (`eval/ood.py` — gürültü + öznitelik-karıştırma) `03_model_egit.py`'ye entegre
   (dense_ae için; ilginç bulgu: rejim_holdout'ta kalibrasyon domain-shift altında
   İYİLEŞMEDİ [ECE 0.060→0.094] — val kaynak domaininden, test hedeften; dürüstçe raporlandı)
-- [ ] Ablasyon (a_/z_/t_ grupları) + 3-5 seed
+- [x] Ablasyon (a_/z_/t_ grupları) — `08_urun_degerlendir.py` → `sonuclar/faz2-urun.md`.
+  Telemetri AUC ~0.50 (sentetik, sinyal yok). Akustik + ünite medyan/MAD uyarlaması:
+  birim_disi makro AUC 0.913, rejim_holdout 0.920 (2026-09-28, gerçek MIMII).
+  pAUC hâlâ < 0.85. Ürün skoru tip başına PCA artığı (SPE, 70 bileşen).
+  Dosya alarmı her iki kabul testinde de PR-01'i tutuyor: görülmemiş ünitede
+  0 olay / 11.4 saat, dosya recall 0.65; SNR kaymasında 0 olay / 21.7 saat,
+  dosya recall 0.79 (2026-09-28, `sonuclar/faz2-resmi-izgara.md`).
+- [ ] 3-5 seed
 - [ ] MLflow deney takibi
 - [x] **Gerçek MIMII ile yeniden çalıştır** (2026-09-21/22) — fan+pump, 6dB+0dB, 19.510
   dosya, 175.590 pencere, TAM mod, iki strateji → `sonuclar/faz2-modeller.md`. **Ana bulgu:**
@@ -88,6 +95,8 @@ gerçek telemetri kaynağı (şu an sentetik vekil).
   Tip-içi rejim_holdout AUC 0.80-0.86 (mahalanobis/dense_ae) — havuzlanmış 0.66'dan
   çok daha güçlü (iki tip farklı skor ölçeğinde). Yol boyunca kritik bir sentetik-telemetri
   etiket sızıntısı bulunup düzeltildi (commit 775e6ad) — FusionAE'nin sahte AUC 1.000'i.
+  2026-09-28: bu cross-unit çöküş, etiketsiz ünite uyarlamasıyla kapanır
+  (akustik makro AUC 0.91) — `sonuclar/faz2-urun.md`.
 - [x] Domain-shift (birim_disi vs rejim_holdout, gerçek MIMII) — yukarıdaki madde kapsıyor;
   MIMII DUE'nin resmi kaynak/hedef domain ayrımı henüz kullanılmadı (kendi SNR-holdout'umuz var)
 - [ ] Görülmemiş arıza tipi, çapraz-veri (CWRU→Paderborn) — test katmanı 3, hâlâ açık

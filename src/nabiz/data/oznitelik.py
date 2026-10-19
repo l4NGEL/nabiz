@@ -27,6 +27,8 @@ class BolmeVerisi:
     X_test: np.ndarray
     y_test: np.ndarray
     meta_test: pd.DataFrame = field(repr=False)   # makine_tipi, rejim, ariza_tipi, ...
+    meta_train: pd.DataFrame = field(repr=False)
+    meta_val: pd.DataFrame = field(repr=False)
 
     @property
     def X_train_normal(self) -> np.ndarray:
@@ -45,11 +47,28 @@ class BolmeVerisi:
         )
 
 
+_META = ["makine_tipi", "makine_birimi", "rejim", "ariza_tipi"]
+_META_OPSIYONEL = ["dosya", "pencere_idx"]
+
+
+def _onekler(gruplar: tuple[str, ...] | None) -> tuple[str, ...]:
+    return tuple(g if g.endswith("_") else g + "_" for g in (gruplar or _ONEKLER))
+
+
 def oznitelik_sutunlari(
     df: pd.DataFrame, gruplar: tuple[str, ...] | None = None
 ) -> list[str]:
-    onekler = tuple(g if g.endswith("_") else g + "_" for g in (gruplar or _ONEKLER))
+    onekler = _onekler(gruplar)
     return sorted(c for c in df.columns if c.startswith(onekler))
+
+
+def grup_indeksleri(adlar: list[str], gruplar: tuple[str, ...]) -> list[int]:
+    """Ablasyon: seçilen öneklerin (`a`, `z`, `t`) sütun konumları."""
+    onekler = _onekler(gruplar)
+    idx = [i for i, ad in enumerate(adlar) if ad.startswith(onekler)]
+    if not idx:
+        raise ValueError(f"gruplar {gruplar} için sütun yok")
+    return idx
 
 
 def yukle(
@@ -72,6 +91,10 @@ def yukle(
     y = (df["etiket"] == "anomali").astype(int).to_numpy()
     maske = {k: (df[bol] == k).to_numpy() for k in ("train", "val", "test")}
 
+    def meta(k: str) -> pd.DataFrame:
+        sutun = _META + [c for c in _META_OPSIYONEL if c in df.columns]
+        return df.loc[maske[k], sutun].reset_index(drop=True)
+
     return BolmeVerisi(
         strateji=strateji,
         oznitelik_adlari=oz,
@@ -81,5 +104,7 @@ def yukle(
         y_val=y[maske["val"]],
         X_test=df.loc[maske["test"], oz].to_numpy(np.float64),
         y_test=y[maske["test"]],
-        meta_test=df.loc[maske["test"], ["makine_tipi", "makine_birimi", "rejim", "ariza_tipi"]].reset_index(drop=True),
+        meta_test=meta("test"),
+        meta_train=meta("train"),
+        meta_val=meta("val"),
     )

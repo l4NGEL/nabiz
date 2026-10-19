@@ -89,6 +89,14 @@ def test_istatistik_makine_bazinda(istemci):
     assert ist["pump/id_00"]["adet"] == 1
 
 
+def test_panel_html(istemci):
+    r = istemci.get("/")
+    assert r.status_code == 200
+    assert "text/html" in r.headers["content-type"]
+    assert "NABIZ" in r.text
+    assert "/tespit" in r.text
+
+
 def test_saglik(istemci):
     istemci.post("/tespit", json=_govde())
     r = istemci.get("/saglik")
